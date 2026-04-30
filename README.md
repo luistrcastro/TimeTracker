@@ -25,13 +25,30 @@ A lightweight, local-first time tracking app for logging daily work tasks and co
 
 ## Getting started
 
+### Windows
+
 1. **Download or clone** this repository
 2. **Double-click `TimeTracker.bat`** — it starts the local server and opens the app in your browser
 3. Start logging time
 
-That's it. No install, no build step, no dependencies.
-
 > To stop the app, close the terminal window that opened with it.
+
+### WSL (Windows Subsystem for Linux)
+
+If your files live inside a WSL distro (e.g. you cloned the repo in WSL), use the included `TimeTracker-WSL.bat` instead:
+
+1. **Copy `TimeTracker-WSL.bat` to your Windows Desktop**
+2. **Open it in a text editor** and fill in the two variables at the top:
+   ```bat
+   set WSL_PATH=/home/youruser/path/to/TimeTrackerSystem
+   set WSL_DISTRO=Ubuntu
+   ```
+   Run `wsl -l` in a cmd window if you're unsure of your distro name.
+3. **Double-click it** — opens a WSL terminal running the server, then opens your browser automatically
+
+No firewall configuration needed — WSL2 proxies `localhost` ports to Windows automatically.
+
+> To stop the app, close the WSL terminal window.
 
 ---
 
@@ -113,10 +130,11 @@ The file is excluded from this repository (via `.gitignore`) — your entries st
 ## Project structure
 
 ```
-TimeTracker.bat              ← Windows launcher
+TimeTracker.bat              ← Windows launcher (Python on Windows)
+TimeTracker-WSL.bat          ← WSL launcher template (Python in WSL)
 TimeTrackerSystem/
   index.html                 ← Entire app (vanilla HTML/CSS/JS, no build step)
-  server.py                  ← Python HTTP server (~70 lines)
+  server.py                  ← Python HTTP server
   data.json                  ← Your entries (auto-created, gitignored)
 ```
 

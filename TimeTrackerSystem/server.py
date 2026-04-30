@@ -98,8 +98,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+def is_wsl():
+    try:
+        return 'microsoft' in open('/proc/version').read().lower()
+    except OSError:
+        return False
+
 def open_browser():
-    webbrowser.open(f'http://localhost:{PORT}/index.html')
+    if not is_wsl():
+        webbrowser.open(f'http://localhost:{PORT}/index.html')
 
 
 if __name__ == '__main__':

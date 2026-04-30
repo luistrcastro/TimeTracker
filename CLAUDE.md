@@ -10,6 +10,8 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **Core concept:** Log work tasks throughout the day with project, description, start/finish times. Compile entries into a Replicon-compatible summary at end of day.
 
+**This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
+
 **Current version:** v1.6.0
 
 ---
@@ -17,13 +19,13 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 ## File Structure
 
 ```
-Desktop/
-  TimeTracker.bat                  ← Windows launcher (double-click to start)
-  TimeTrackerSystem/
-    index.html                     ← The entire frontend app (~2550 lines)
-    server.py                      ← Python HTTP server (~70 lines)
-    data.json                      ← Auto-created on first save (do not edit manually)
-    CLAUDE.md                      ← This file
+TimeTracker.bat                  ← Windows launcher (double-click to start)
+TimeTracker-WSL.bat              ← WSL launcher template (fill in WSL_PATH and WSL_DISTRO)
+TimeTrackerSystem/
+  index.html                     ← The entire frontend app (~2550 lines)
+  server.py                      ← Python HTTP server (~70 lines)
+  data.json                      ← Auto-created on first save (do not edit manually)
+  CLAUDE.md                      ← This file
 ```
 
 **Critical rule:** There is no build system, no bundler, no npm. Everything is vanilla HTML/CSS/JS in a single `index.html`. Do not introduce dependencies or split into multiple files unless explicitly asked.
@@ -32,11 +34,19 @@ Desktop/
 
 ## How It Runs
 
+### Windows (native)
 1. User double-clicks `TimeTracker.bat` on their Desktop
 2. Bat file checks Python is installed, then `cd`s into `TimeTrackerSystem/` and runs `server.py`
 3. Python serves `index.html` at `http://localhost:5000` and opens the browser automatically
 4. All data reads/writes go through `GET/POST http://localhost:5000/api/entries`
 5. Closing the terminal window stops the server
+
+### WSL
+1. Copy `TimeTracker-WSL.bat` to the Windows Desktop and fill in `WSL_PATH` and `WSL_DISTRO`
+2. Double-clicking it opens a WSL terminal window running `server.py` from the repo path
+3. The bat opens the browser from the Windows side after a 2-second delay (WSL2 proxies `localhost` automatically — no firewall config needed)
+4. `server.py` detects WSL via `/proc/version` and skips its own `webbrowser.open()` call to avoid xdg-open errors
+5. Closing the WSL terminal window stops the server
 
 ---
 
@@ -257,13 +267,15 @@ All CSS is in a single `<style>` block in `<head>`. Uses CSS custom properties (
 
 ## Python Server (server.py)
 
-~70 lines. Extends `SimpleHTTPRequestHandler` to serve `index.html` statically and add two API endpoints:
+~80 lines. Extends `SimpleHTTPRequestHandler` to serve `index.html` statically and add two API endpoints:
 
 - `GET /api/entries` → reads and returns `data.json`
 - `POST /api/entries` → receives JSON array, writes to `data.json`
 
 `data.json` path is always relative to `server.py`'s own directory (`os.path.dirname(__file__)`).
 Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If changed, also update `const API` in `index.html`.
+
+`is_wsl()` checks `/proc/version` for `"microsoft"` — returns `True` when running inside WSL2. Used by `open_browser()` to skip `webbrowser.open()` (which fails in WSL with xdg-open errors). The WSL launcher bat handles browser opening instead.
 
 ---
 
