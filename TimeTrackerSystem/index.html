@@ -777,7 +777,7 @@
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="logo">TIME<span>/</span>TRACKER</div>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v1.6.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v1.6.1</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
@@ -1370,6 +1370,7 @@ function detectGapsAndOverlaps(entries) {
   for (let i = 0; i < entries.length - 1; i++) {
     const a = entries[i];
     const b = entries[i + 1];
+    if (!a.finish || !b.start) continue;
     const aFinish = timeToMinutes(a.finish);
     const bStart  = timeToMinutes(b.start);
     const diff = bStart - aFinish;
@@ -1767,6 +1768,7 @@ async function saveModal(cascade = false) {
   if (!finish)      { document.getElementById('mFinish').focus(); return; }
 
   const durMins = timeToMinutes(finish) - timeToMinutes(start);
+  if (durMins < 0) { alert('Finish must be after Start.'); return; }
   entries[idx] = {
     ...entries[idx],
     project,
@@ -1775,7 +1777,7 @@ async function saveModal(cascade = false) {
     subDescription: document.getElementById('mSubDescription').value.trim(),
     furtherInfo:    document.getElementById('mFurtherInfo').value.trim(),
     start, finish,
-    duration: minutesToHHMM(Math.max(0, durMins)),
+    duration: minutesToHHMM(durMins),
   };
 
   // Cascade: shift all subsequent same-day rows by the finish delta
@@ -1966,8 +1968,8 @@ function renderDayView(newRowPrefillStart) {
   }
   document.getElementById('daySummary').innerHTML = chips.join('');
 
-  // Determine prefill for new row: passed in, or last entry's finish, or ''
-  const lastFinish = entries.length > 0 ? entries[entries.length - 1].finish : '';
+  // Determine prefill for new row: passed in, or chronologically last entry's finish, or ''
+  const lastFinish = chronological.length > 0 ? chronological[chronological.length - 1].finish : '';
   const prefill = newRowPrefillStart !== undefined ? newRowPrefillStart : lastFinish;
 
   // Build table body
@@ -2116,6 +2118,7 @@ function copyEntryAsText(id) {
 }
 
 function showToast(msg) {
+  if (_deletedEntry) return;
   const t = document.getElementById('copyToast');
   t.textContent = msg;
   t.classList.add('show');
@@ -2178,14 +2181,14 @@ function exportCSV() {
 function importData(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) { alert('Invalid format.'); return; }
       const existing = loadEntries();
       const ids = new Set(existing.map(e=>e.id));
       const merged = [...existing, ...imported.filter(e=>!ids.has(e.id))];
-      saveEntries(merged);
+      await saveEntries(merged);
       renderAll();
       alert(`Imported. ${merged.length - existing.length} new entries added.`);
     } catch { alert('Failed to parse JSON.'); }

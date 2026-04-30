@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v1.6.0
+**Current version:** v1.6.1
 
 ---
 
@@ -294,7 +294,7 @@ Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If change
 
 Version is hardcoded as a string in `index.html` in the header HTML:
 ```html
-<span ...>v1.6.0</span>
+<span ...>v1.6.1</span>
 ```
 Semantic versioning (major.minor.patch). Search for the version string — it appears exactly once. Bump manually when shipping a meaningful change.
 
@@ -311,6 +311,7 @@ Semantic versioning (major.minor.patch). Search for the version string — it ap
 - `v1.4.5` — Split entry modal (⑃ button on each row)
 - `v1.5.0` — Copy from another day: "⎘ Copy from..." button in Day View topbar, date nav with chevrons, entry checklist, blank times on paste
 - `v1.6.0` — Data tab renamed to Settings; Configuration card added with configurable Jira ticket pattern
+- `v1.6.1` — Bug fixes: gap/overlap skips blank-time entries; new-row start prefill uses chronological order; saveModal rejects finish < start; importData awaits save before render/alert; showToast guards against clobbering the Undo button
 
 ---
 
