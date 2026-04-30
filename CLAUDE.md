@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v1.6.1
+**Current version:** v1.7.0
 
 ---
 
@@ -237,6 +237,53 @@ let JIRA_RE          // RegExp built from _jiraPattern
 - Green: saving to `data.json`
 - Amber: server unreachable, saving to localStorage
 
+### Keyboard Shortcuts
+
+A global `keydown` listener (`handleGlobalKey`) handles all shortcuts. Global shortcuts are suppressed when any `input`, `select`, or `textarea` is focused — except modal Enter/Escape which always fire.
+
+**Global shortcuts** (disabled while typing in any input):
+
+| Key(s) | Action |
+|---|---|
+| `←` / `[` | Previous day (`changeDate(-1)`) |
+| `→` / `]` | Next day (`changeDate(1)`) |
+| `T` | Go to today (`goToday()`) |
+| `1` / `2` / `3` / `4` | Switch to Day / Week / Replicon / Settings tab |
+| `N` | Focus new-entry row project field |
+| `Ctrl+Z` | Undo last delete (only if `_deletedEntry` is set) |
+| `?` | Toggle keyboard shortcuts help overlay |
+
+**Modal shortcuts** (always active when a modal is open):
+
+| Key | Action |
+|---|---|
+| `Escape` | Close active modal |
+| `Enter` | Save/confirm — edit modal always; copy-from only if ≥1 entry checked; split modal only if focus is not on a table `input`/`select` |
+
+**New-entry row:**
+- `Escape` in any new-row field blurs it, returning focus to the page so global shortcuts work again.
+
+**Focus management:**
+- `openEdit()` focuses `#mProject` on open
+- `openSplit()` focuses first row's `.sr-project` on open
+- `openCopyFrom()` focuses `#copyFromDate` on open
+
+**Focus trap:**
+- `trapFocus(modalEl)` is called once per modal at init. Tab from the last focusable element wraps to the first; Shift+Tab from the first wraps to the last. Applied to `editModal`, `splitModal`, `copyFromModal`, `shortcutsModal`.
+
+**Shortcuts help overlay:**
+- `<div id="shortcutsModal">` — styled like other modals, lists all shortcuts in a table
+- Toggled by `toggleShortcutsHelp()` — called by `?` key or the `?` button in the header
+- Closed by Escape or clicking the overlay backdrop
+
+**Key functions:**
+
+| Function | Description |
+|---|---|
+| `handleGlobalKey(e)` | Main keydown router — modal shortcuts + global shortcuts |
+| `toggleShortcutsHelp()` | Toggles `shortcutsModal` show class |
+| `trapFocus(modalEl)` | Wires Tab/Shift+Tab focus wrap for a modal element |
+
 ---
 
 ## CSS Architecture
@@ -294,7 +341,7 @@ Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If change
 
 Version is hardcoded as a string in `index.html` in the header HTML:
 ```html
-<span ...>v1.6.1</span>
+<span ...>v1.7.0</span>
 ```
 Semantic versioning (major.minor.patch). Search for the version string — it appears exactly once. Bump manually when shipping a meaningful change.
 
@@ -312,6 +359,7 @@ Semantic versioning (major.minor.patch). Search for the version string — it ap
 - `v1.5.0` — Copy from another day: "⎘ Copy from..." button in Day View topbar, date nav with chevrons, entry checklist, blank times on paste
 - `v1.6.0` — Data tab renamed to Settings; Configuration card added with configurable Jira ticket pattern
 - `v1.6.1` — Bug fixes: gap/overlap skips blank-time entries; new-row start prefill uses chronological order; saveModal rejects finish < start; importData awaits save before render/alert; showToast guards against clobbering the Undo button
+- `v1.7.0` — Power-user keyboard shortcuts: global shortcuts (←/→/[/] date nav, T today, 1–4 tab switch, N new entry, Ctrl+Z undo, ? help); modal Enter-to-save and Escape-to-close; focus-on-open for all modals; Tab focus trap in all modals; keyboard shortcuts help overlay (? button in header)
 
 ---
 
