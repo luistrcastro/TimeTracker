@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v1.7.1
+**Current version:** v2.0.0
 
 ---
 
@@ -22,13 +22,28 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 TimeTracker.bat                  ← Windows launcher (double-click to start)
 TimeTracker-WSL.bat              ← WSL launcher template (fill in WSL_PATH and WSL_DISTRO)
 TimeTrackerSystem/
-  index.html                     ← The entire frontend app (~2550 lines)
-  server.py                      ← Python HTTP server (~70 lines)
-  data.json                      ← Auto-created on first save (do not edit manually)
+  index.html                     ← Landing page: 2-button launcher (Replicon / Contractor)
+  replicon.html                  ← Replicon variant (~1620 lines, v2.0.0)
+  contractor.html                ← Contractor variant (~1775 lines, v2.0.0)
+  common.js                      ← Shared JS (~500 lines): data layer, utilities, theme, modals
+  common.css                     ← Shared CSS (~22KB): all styles for both variants
+  server.py                      ← Python HTTP server (~100 lines)
+  data-replicon.json             ← Replicon entries (auto-created on first save)
+  data-contractor.json           ← Contractor entries (auto-created on first save)
   CLAUDE.md                      ← This file
 ```
 
-**Critical rule:** There is no build system, no bundler, no npm. Everything is vanilla HTML/CSS/JS in a single `index.html`. Do not introduce dependencies or split into multiple files unless explicitly asked.
+**Critical rule:** There is no build system, no bundler, no npm. Everything is vanilla HTML/CSS/JS. Do not introduce dependencies.
+
+### Shared architecture
+Each variant defines `window.TT_CONFIG = { api, storageKey }` **before** loading `common.js`. The common data layer reads `TT_CONFIG.api` for the server endpoint and `TT_CONFIG.storageKey` for the localStorage fallback key.
+
+Contractor's `initData` overrides the common version to also run `migrateEntries` + `seedClientsFromEntries` after loading. It sets `_onServerRecovery` for post-heartbeat-reconnect migration.
+
+### API routes
+- `/api/replicon/entries` → `data-replicon.json`
+- `/api/contractor/entries` → `data-contractor.json`
+- `/api/entries` → `data.json` (legacy backward-compat)
 
 ---
 
@@ -38,7 +53,7 @@ TimeTrackerSystem/
 1. User double-clicks `TimeTracker.bat` on their Desktop
 2. Bat file checks Python is installed, then `cd`s into `TimeTrackerSystem/` and runs `server.py`
 3. Python serves `index.html` at `http://localhost:5000` and opens the browser automatically
-4. All data reads/writes go through `GET/POST http://localhost:5000/api/entries`
+4. All data reads/writes go through `GET/POST http://localhost:5000/api/replicon/entries` (replicon) or `/api/contractor/entries` (contractor)
 5. Closing the terminal window stops the server
 
 ### WSL
@@ -339,11 +354,9 @@ Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If change
 
 ## Versioning
 
-Version is hardcoded as a string in `index.html` in the header HTML:
-```html
-<span ...>v1.7.0</span>
-```
-Semantic versioning (major.minor.patch). Search for the version string — it appears exactly once. Bump manually when shipping a meaningful change.
+Version is hardcoded in the variant HTML files' header. In `replicon.html` and `contractor.html` search for the version `<span>` — it appears once per file. Bump both when shipping a shared change; bump only the relevant file for variant-specific changes.
+
+Semantic versioning (major.minor.patch).
 
 **Version history:**
 - `v1.0.0` — Day view, inline entry row, Jira detection, Replicon tab, Data tab
@@ -361,6 +374,7 @@ Semantic versioning (major.minor.patch). Search for the version string — it ap
 - `v1.6.1` — Bug fixes: gap/overlap skips blank-time entries; new-row start prefill uses chronological order; saveModal rejects finish < start; importData awaits save before render/alert; showToast guards against clobbering the Undo button
 - `v1.7.0` — Power-user keyboard shortcuts: global shortcuts (←/→/[/] date nav, T today, 1–4 tab switch, N new entry, Ctrl+Z undo, ? help); modal Enter-to-save and Escape-to-close; focus-on-open for all modals; Tab focus trap in all modals; keyboard shortcuts help overlay (? button in header)
 - `v1.7.1` — Autocomplete dropdown flips above the input when there isn't enough space below (dynamic positioning)
+- `v2.0.0` — Architecture split: shared code extracted to `common.js` + `common.css`; launcher `index.html` with Replicon/Contractor choice; separate data files per variant (`data-replicon.json`, `data-contractor.json`); contractor synced to feature parity with replicon (Copy From modal, configurable Jira pattern, keyboard shortcuts, v1.6.1 bug fixes)
 
 ---
 
