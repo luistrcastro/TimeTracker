@@ -26,7 +26,7 @@ window.TT_CONFIG = {
 
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
-    <div class="logo">TIME<span>/</span>TRACKER</div>
+    <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
     <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.0.0</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -54,11 +54,14 @@ window.TT_CONFIG = {
 
 <div class="container">
   <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('day')">Day View</button>
-    <button class="tab" onclick="switchTab('week')">Week View</button>
-    <button class="tab" onclick="switchTab('replicon')">Replicon</button>
-    <button class="tab" onclick="switchTab('data')">Settings</button>
+  <div style="display:flex;align-items:center;margin-bottom:20px;">
+    <div class="tabs" style="margin-bottom:0;">
+      <button class="tab active" onclick="switchTab('day')">Day View</button>
+      <button class="tab" onclick="switchTab('week')">Week View</button>
+      <button class="tab" onclick="switchTab('replicon')">Replicon</button>
+      <button class="tab" onclick="switchTab('data')">Settings</button>
+    </div>
+    <span style="margin-left:auto;font-family:var(--mono);font-size:0.72rem;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;">Replicon</span>
   </div>
 
   <!-- ══ DAY VIEW TAB ══ -->

@@ -26,7 +26,7 @@ window.TT_CONFIG = {
 
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
-    <div class="logo">TIME<span>/</span>TRACKER</div>
+    <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
     <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.0.0</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -54,11 +54,14 @@ window.TT_CONFIG = {
 
 <div class="container">
   <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('day')">Day View</button>
-    <button class="tab" onclick="switchTab('week')">Week View</button>
-    <button class="tab" onclick="switchTab('replicon')">Replicon</button>
-    <button class="tab" onclick="switchTab('data')">Data</button>
+  <div style="display:flex;align-items:center;margin-bottom:20px;">
+    <div class="tabs" style="margin-bottom:0;">
+      <button class="tab active" onclick="switchTab('day')">Day View</button>
+      <button class="tab" onclick="switchTab('week')">Week View</button>
+      <button class="tab" onclick="switchTab('replicon')">Billing</button>
+      <button class="tab" onclick="switchTab('data')">Data</button>
+    </div>
+    <span style="margin-left:auto;font-family:var(--mono);font-size:0.72rem;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;">Contractor</span>
   </div>
 
   <!-- ══ DAY VIEW TAB ══ -->
@@ -72,7 +75,7 @@ window.TT_CONFIG = {
         <button class="today-btn" onclick="goToday()">today</button>
       </div>
       <div class="spacer"></div>
-      <button class="btn" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
+      <button class="btn btn-sm" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
       <button class="btn btn-sm" onclick="markDayInvoiced(currentDate, true)" title="Mark all entries today as invoiced">✓ Invoice day</button>
       <button class="btn btn-sm" onclick="markDayInvoiced(currentDate, false)" title="Clear invoiced flag for all entries today">○ Clear day</button>
     </div>
@@ -143,7 +146,7 @@ window.TT_CONFIG = {
     </div>
 
     <div style="font-size:0.75rem; color:var(--text-faint); font-family:var(--mono);">
-      Hours rounded to nearest 0.25 · Same format as Replicon timesheet
+      Hours rounded to nearest 0.25 · Ready to copy for billing
     </div>
   </div>
 
@@ -267,7 +270,7 @@ window.TT_CONFIG = {
         <tr><td colspan="2" class="shortcuts-section">Tabs</td></tr>
         <tr><td><span class="kbd">1</span></td><td>Day View</td></tr>
         <tr><td><span class="kbd">2</span></td><td>Week View</td></tr>
-        <tr><td><span class="kbd">3</span></td><td>Replicon</td></tr>
+        <tr><td><span class="kbd">3</span></td><td>Billing</td></tr>
         <tr><td><span class="kbd">4</span></td><td>Settings</td></tr>
         <tr><td colspan="2" class="shortcuts-section">Entries</td></tr>
         <tr><td><span class="kbd">N</span></td><td>Focus new-entry row client field</td></tr>
@@ -1182,7 +1185,7 @@ function renderDayView(newRowPrefillStart) {
       <td>
         <div class="row-actions">
           <button class="icon-btn" onclick="openEdit('${e.id}')" title="Edit">✎</button>
-          <button class="icon-btn" onclick="openSplit('${e.id}')" title="Split entry">⊕</button>
+          <button class="icon-btn" onclick="openSplit('${e.id}')" title="Split entry">⑃</button>
           <button class="icon-btn" onclick="duplicateEntry('${e.id}')" title="Duplicate">⧉</button>
           <button class="icon-btn" onclick="copyEntryAsText('${e.id}')" title="Copy as text">⎘</button>
           <button class="icon-btn del" onclick="deleteEntry('${e.id}')" title="Delete">✕</button>
