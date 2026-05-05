@@ -1,0 +1,6 @@
+TimeTrackerSystem/data.json
+TimeTrackerSystem/backup/
+data/
+*.bat
+.git
+.claude
