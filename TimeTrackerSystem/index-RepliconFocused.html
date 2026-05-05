@@ -260,6 +260,7 @@
   .autocomplete-list {
     position: absolute;
     top: 100%;
+    bottom: auto;
     left: 0;
     right: 0;
     background: var(--surface);
@@ -272,6 +273,7 @@
     display: none;
   }
   .autocomplete-list.show { display: block; }
+  .autocomplete-list.above { top: auto; bottom: 100%; }
   .autocomplete-item {
     padding: 7px 10px;
     font-size: 0.82rem;
@@ -507,6 +509,26 @@
   }
   .modal-full { grid-column: 1 / -1; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  /* ── Keyboard shortcuts overlay ── */
+  .shortcuts-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .shortcuts-table th {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.05em; color: var(--text-muted);
+    text-align: left; padding: 0 8px 10px; border-bottom: 1px solid var(--border);
+  }
+  .shortcuts-table td { padding: 5px 8px; color: var(--text); vertical-align: middle; }
+  .shortcuts-table tr + tr td { border-top: 1px solid var(--border); }
+  .shortcuts-section { font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.06em; color: var(--text-faint); padding: 14px 8px 4px;
+    text-transform: uppercase; }
+  .kbd {
+    display: inline-block; font-family: var(--mono); font-size: 0.72rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; margin: 0 1px;
+    white-space: nowrap; color: var(--text);
+  }
+  .kbd-sep { color: var(--text-faint); font-size: 0.7rem; margin: 0 2px; }
 
   /* ── Data management ── */
   .data-section {
@@ -777,7 +799,7 @@
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="logo">TIME<span>/</span>TRACKER</div>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v1.6.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v1.7.1</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
@@ -796,6 +818,7 @@
       </div>
       <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.5);letter-spacing:0.05em;">12H</span>
     </div>
+    <button onclick="toggleShortcutsHelp()" title="Keyboard shortcuts (?)" style="background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.45);padding:2px 6px;border-radius:4px;line-height:1;" onmouseover="this.style.color='rgba(255,255,255,0.8)'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">?</button>
     <div id="serverDot" title="Checking server..." style="width:8px;height:8px;border-radius:50%;background:#555;transition:background 0.3s;flex-shrink:0;"></div>
     <div class="header-date" id="headerDate"></div>
   </div>
@@ -1041,6 +1064,41 @@
   </div>
 </div>
 
+<!-- Keyboard shortcuts overlay -->
+<div class="modal-overlay" id="shortcutsModal">
+  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div class="modal-title" style="margin-bottom:0;">Keyboard shortcuts</div>
+      <button onclick="toggleShortcutsHelp()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-muted);line-height:1;padding:0 4px;">×</button>
+    </div>
+    <table class="shortcuts-table">
+      <thead><tr><th>Key</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td colspan="2" class="shortcuts-section">Navigation</td></tr>
+        <tr><td><span class="kbd">←</span> <span class="kbd-sep">/</span> <span class="kbd">[</span></td><td>Previous day</td></tr>
+        <tr><td><span class="kbd">→</span> <span class="kbd-sep">/</span> <span class="kbd">]</span></td><td>Next day</td></tr>
+        <tr><td><span class="kbd">T</span></td><td>Go to today</td></tr>
+        <tr><td colspan="2" class="shortcuts-section">Tabs</td></tr>
+        <tr><td><span class="kbd">1</span></td><td>Day View</td></tr>
+        <tr><td><span class="kbd">2</span></td><td>Week View</td></tr>
+        <tr><td><span class="kbd">3</span></td><td>Replicon</td></tr>
+        <tr><td><span class="kbd">4</span></td><td>Settings</td></tr>
+        <tr><td colspan="2" class="shortcuts-section">Entries</td></tr>
+        <tr><td><span class="kbd">N</span></td><td>Focus new entry row</td></tr>
+        <tr><td><span class="kbd">Ctrl</span> <span class="kbd-sep">+</span> <span class="kbd">Z</span></td><td>Undo last delete</td></tr>
+        <tr><td colspan="2" class="shortcuts-section">Modals</td></tr>
+        <tr><td><span class="kbd">Enter</span></td><td>Save / confirm</td></tr>
+        <tr><td><span class="kbd">Esc</span></td><td>Close / cancel</td></tr>
+        <tr><td colspan="2" class="shortcuts-section">App</td></tr>
+        <tr><td><span class="kbd">?</span></td><td>Toggle this help</td></tr>
+      </tbody>
+    </table>
+    <div style="font-size:0.73rem;color:var(--text-faint);font-family:var(--mono);margin-top:16px;">
+      Global shortcuts are disabled while typing in any input field.
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 //  Copy From Modal
@@ -1051,6 +1109,7 @@ function openCopyFrom() {
   document.getElementById('copyFromDate').value = yesterday;
   renderCopyFromList();
   document.getElementById('copyFromModal').classList.add('show');
+  setTimeout(() => document.getElementById('copyFromDate').focus(), 0);
 }
 
 function closeCopyFrom() {
@@ -1370,6 +1429,7 @@ function detectGapsAndOverlaps(entries) {
   for (let i = 0; i < entries.length - 1; i++) {
     const a = entries[i];
     const b = entries[i + 1];
+    if (!a.finish || !b.start) continue;
     const aFinish = timeToMinutes(a.finish);
     const bStart  = timeToMinutes(b.start);
     const diff = bStart - aFinish;
@@ -1439,18 +1499,16 @@ function saveJiraPattern(pattern) {
 }
 function validateJiraPattern(input) {
   const err = document.getElementById('jiraPatternError');
-  try { new RegExp(input.value, 'i'); err.style.display = 'none'; input.style.borderColor = ''; }
-  catch { err.style.display = 'inline'; input.style.borderColor = '#e05252'; }
+  try { new RegExp(input.value, 'i'); err.style.display = 'none'; input.style.borderColor = ''; return true; }
+  catch { err.style.display = 'inline'; input.style.borderColor = '#e05252'; return false; }
 }
 function applyJiraPattern() {
   const input = document.getElementById('jiraPatternInput');
-  try {
-    new RegExp(input.value, 'i');
-    saveJiraPattern(input.value);
-    input.style.borderColor = 'var(--accent-interactive)';
-    setTimeout(() => input.style.borderColor = '', 1200);
-    renderAll();
-  } catch { /* invalid regex — already shown by validateJiraPattern */ }
+  if (!validateJiraPattern(input)) return;
+  saveJiraPattern(input.value);
+  input.style.borderColor = 'var(--accent-interactive)';
+  setTimeout(() => input.style.borderColor = '', 1200);
+  renderAll();
 }
 function populateSettingsTab() {
   const input = document.getElementById('jiraPatternInput');
@@ -1478,6 +1536,16 @@ function setupAC(inputEl, field, listEl) {
     if (acIndex >= 0) items[acIndex].classList.add('active');
   }
 
+  function positionList() {
+    const rect = inputEl.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < 168) {
+      listEl.classList.add('above');
+    } else {
+      listEl.classList.remove('above');
+    }
+  }
+
   inputEl.addEventListener('input', () => {
     acIndex = -1;
     const val = inputEl.value.toLowerCase();
@@ -1494,6 +1562,7 @@ function setupAC(inputEl, field, listEl) {
         acIndex = -1;
       });
     });
+    positionList();
     listEl.classList.add('show');
   });
 
@@ -1585,6 +1654,11 @@ function buildNewRow(prefillStart) {
   // Enter on start → move to finish
   tr.querySelector('#nr-start').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); tr.querySelector('#nr-finish')?.focus(); }
+  });
+
+  // Escape on any new-row input → blur back to navigation mode
+  tr.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); document.activeElement?.blur(); }
   });
 
   // description jira hint
@@ -1719,6 +1793,7 @@ function openEdit(id) {
   btn.disabled = true;
   btn.textContent = 'Cascade change';
   document.getElementById('editModal').classList.add('show');
+  setTimeout(() => document.getElementById('mProject').focus(), 0);
 }
 
 function onModalFinishChange() {
@@ -1769,6 +1844,7 @@ async function saveModal(cascade = false) {
   if (!finish)      { document.getElementById('mFinish').focus(); return; }
 
   const durMins = timeToMinutes(finish) - timeToMinutes(start);
+  if (durMins < 0) { alert('Finish must be after Start.'); return; }
   entries[idx] = {
     ...entries[idx],
     project,
@@ -1777,7 +1853,7 @@ async function saveModal(cascade = false) {
     subDescription: document.getElementById('mSubDescription').value.trim(),
     furtherInfo:    document.getElementById('mFurtherInfo').value.trim(),
     start, finish,
-    duration: minutesToHHMM(Math.max(0, durMins)),
+    duration: minutesToHHMM(durMins),
   };
 
   // Cascade: shift all subsequent same-day rows by the finish delta
@@ -1968,8 +2044,8 @@ function renderDayView(newRowPrefillStart) {
   }
   document.getElementById('daySummary').innerHTML = chips.join('');
 
-  // Determine prefill for new row: passed in, or last entry's finish, or ''
-  const lastFinish = entries.length > 0 ? entries[entries.length - 1].finish : '';
+  // Determine prefill for new row: passed in, or chronologically last entry's finish, or ''
+  const lastFinish = chronological.length > 0 ? chronological[chronological.length - 1].finish : '';
   const prefill = newRowPrefillStart !== undefined ? newRowPrefillStart : lastFinish;
 
   // Build table body
@@ -2118,6 +2194,7 @@ function copyEntryAsText(id) {
 }
 
 function showToast(msg) {
+  if (_deletedEntry) return;
   const t = document.getElementById('copyToast');
   t.textContent = msg;
   t.classList.add('show');
@@ -2180,14 +2257,14 @@ function exportCSV() {
 function importData(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) { alert('Invalid format.'); return; }
       const existing = loadEntries();
       const ids = new Set(existing.map(e=>e.id));
       const merged = [...existing, ...imported.filter(e=>!ids.has(e.id))];
-      saveEntries(merged);
+      await saveEntries(merged);
       renderAll();
       alert(`Imported. ${merged.length - existing.length} new entries added.`);
     } catch { alert('Failed to parse JSON.'); }
@@ -2382,6 +2459,7 @@ function openSplit(id) {
 
   updateSplitRemaining();
   document.getElementById('splitModal').classList.add('show');
+  setTimeout(() => document.getElementById('splitBody').querySelector('.sr-project')?.focus(), 0);
 }
 
 function closeSplitModal() {
@@ -2653,6 +2731,117 @@ function startClock() {
   tick();
   setInterval(tick, 1000);
 }
+
+// ══════════════════════════════════════════════
+//  Keyboard shortcuts
+// ══════════════════════════════════════════════
+
+function toggleShortcutsHelp() {
+  document.getElementById('shortcutsModal').classList.toggle('show');
+}
+
+function trapFocus(modal) {
+  modal.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = Array.from(modal.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(el => el.offsetParent !== null);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  });
+}
+
+trapFocus(document.getElementById('editModal'));
+trapFocus(document.getElementById('splitModal'));
+trapFocus(document.getElementById('copyFromModal'));
+trapFocus(document.getElementById('shortcutsModal'));
+
+document.getElementById('shortcutsModal').addEventListener('click', function(e) {
+  if (e.target === this) toggleShortcutsHelp();
+});
+
+function handleGlobalKey(e) {
+  const editOpen      = document.getElementById('editModal').classList.contains('show');
+  const splitOpen     = document.getElementById('splitModal').classList.contains('show');
+  const copyFromOpen  = document.getElementById('copyFromModal').classList.contains('show');
+  const helpOpen      = document.getElementById('shortcutsModal').classList.contains('show');
+  const anyModalOpen  = editOpen || splitOpen || copyFromOpen || helpOpen;
+
+  // ── Modal-specific: Escape closes, Enter saves ──────────────────
+  if (e.key === 'Escape') {
+    if (editOpen)     { closeModal();           e.preventDefault(); return; }
+    if (splitOpen)    { closeSplitModal();       e.preventDefault(); return; }
+    if (copyFromOpen) { closeCopyFrom();         e.preventDefault(); return; }
+    if (helpOpen)     { toggleShortcutsHelp();   e.preventDefault(); return; }
+  }
+
+  if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+    if (editOpen) {
+      e.preventDefault();
+      saveModal(false);
+      return;
+    }
+    if (copyFromOpen) {
+      const btn = document.getElementById('copyFromConfirm');
+      if (!btn.disabled) { e.preventDefault(); executeCopyFrom(); }
+      return;
+    }
+    if (splitOpen) {
+      const tag = document.activeElement?.tagName.toLowerCase();
+      if (tag !== 'input' && tag !== 'select' && tag !== 'textarea') {
+        e.preventDefault();
+        saveSplit(false);
+      }
+      return;
+    }
+  }
+
+  // ── Global shortcuts: disabled while typing in any input ────────
+  if (anyModalOpen) return;
+  const tag = document.activeElement?.tagName.toLowerCase();
+  if (['input', 'select', 'textarea'].includes(tag)) return;
+
+  // Ctrl+Z — undo delete
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+    if (_deletedEntry) { e.preventDefault(); undoDelete(); }
+    return;
+  }
+
+  // Ignore other modifier combos
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+    case '[':
+      e.preventDefault(); changeDate(-1); break;
+    case 'ArrowRight':
+    case ']':
+      e.preventDefault(); changeDate(1); break;
+    case 't':
+    case 'T':
+      e.preventDefault(); goToday(); break;
+    case '1': e.preventDefault(); switchTab('day');      break;
+    case '2': e.preventDefault(); switchTab('week');     break;
+    case '3': e.preventDefault(); switchTab('replicon'); break;
+    case '4': e.preventDefault(); switchTab('data');     break;
+    case 'n':
+    case 'N':
+      e.preventDefault();
+      switchTab('day');
+      setTimeout(() => document.getElementById('nr-project')?.focus(), 0);
+      break;
+    case '?':
+      e.preventDefault(); toggleShortcutsHelp(); break;
+  }
+}
+
+document.addEventListener('keydown', handleGlobalKey);
 
 </script>
 </body>

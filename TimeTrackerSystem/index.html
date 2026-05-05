@@ -260,6 +260,7 @@
   .autocomplete-list {
     position: absolute;
     top: 100%;
+    bottom: auto;
     left: 0;
     right: 0;
     background: var(--surface);
@@ -272,6 +273,7 @@
     display: none;
   }
   .autocomplete-list.show { display: block; }
+  .autocomplete-list.above { top: auto; bottom: 100%; }
   .autocomplete-item {
     padding: 7px 10px;
     font-size: 0.82rem;
@@ -797,7 +799,7 @@
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="logo">TIME<span>/</span>TRACKER</div>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v1.7.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v1.7.1</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
@@ -1534,6 +1536,16 @@ function setupAC(inputEl, field, listEl) {
     if (acIndex >= 0) items[acIndex].classList.add('active');
   }
 
+  function positionList() {
+    const rect = inputEl.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < 168) {
+      listEl.classList.add('above');
+    } else {
+      listEl.classList.remove('above');
+    }
+  }
+
   inputEl.addEventListener('input', () => {
     acIndex = -1;
     const val = inputEl.value.toLowerCase();
@@ -1550,6 +1562,7 @@ function setupAC(inputEl, field, listEl) {
         acIndex = -1;
       });
     });
+    positionList();
     listEl.classList.add('show');
   });
 

@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v1.7.0
+**Current version:** v1.7.1
 
 ---
 
@@ -360,6 +360,7 @@ Semantic versioning (major.minor.patch). Search for the version string — it ap
 - `v1.6.0` — Data tab renamed to Settings; Configuration card added with configurable Jira ticket pattern
 - `v1.6.1` — Bug fixes: gap/overlap skips blank-time entries; new-row start prefill uses chronological order; saveModal rejects finish < start; importData awaits save before render/alert; showToast guards against clobbering the Undo button
 - `v1.7.0` — Power-user keyboard shortcuts: global shortcuts (←/→/[/] date nav, T today, 1–4 tab switch, N new entry, Ctrl+Z undo, ? help); modal Enter-to-save and Escape-to-close; focus-on-open for all modals; Tab focus trap in all modals; keyboard shortcuts help overlay (? button in header)
+- `v1.7.1` — Autocomplete dropdown flips above the input when there isn't enough space below (dynamic positioning)
 
 ---
 
