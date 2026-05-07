@@ -803,3 +803,98 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Invoice status badges ── */
+  .inv-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .inv-badge-draft { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .inv-badge-sent  { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+  .inv-badge-paid  { background: var(--logged-bg); color: #166534; border: 1px solid var(--logged-border); }
+  .inv-badge-void  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+  [data-theme="dark"] .inv-badge-sent { background: #0c1a30; color: #93c5fd; border-color: #2d4a8a; }
+  [data-theme="dark"] .inv-badge-paid { background: var(--logged-bg); color: #4ade80; border-color: var(--logged-border); }
+  [data-theme="dark"] .inv-badge-void { background: #2a1010; color: #f87171; border-color: #7a2020; }
+
+  /* ── Invoiced icon in Day/Week View (replaces checkbox) ── */
+  .invoiced-icon { font-size: 0.9rem; cursor: default; }
+  .invoiced-icon.is-invoiced  { color: #16a34a; }
+  .invoiced-icon.not-invoiced { color: var(--border); }
+
+  /* ── Invoice list table ── */
+  .invoice-list-table { width: 100%; border-collapse: collapse; }
+  .invoice-list-table th {
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--text-faint); padding: 8px 12px;
+    text-align: left; background: var(--surface2); border-bottom: 1px solid var(--border);
+  }
+  .invoice-list-table td {
+    padding: 9px 12px; font-size: 0.82rem; border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .invoice-list-table tr:last-child td { border-bottom: none; }
+  .invoice-list-table tr:hover td { background: var(--surface2); }
+  .invoice-list-table td.mono { font-family: var(--mono); font-size: 0.77rem; }
+
+  /* ── Invoice creation form ── */
+  .inv-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .inv-form-grid .full { grid-column: 1 / -1; }
+
+  /* ── Uninvoiced entry checklist ── */
+  .inv-entry-list {
+    max-height: 280px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 14px;
+  }
+  .inv-entry-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .inv-entry-item:last-child { border-bottom: none; }
+  .inv-entry-item:hover { background: var(--surface2); }
+  .inv-entry-item input[type="checkbox"] { flex-shrink: 0; }
+  .inv-entry-meta {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .inv-entry-desc { font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .inv-summary-bar {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--text-muted);
+    padding: 8px 12px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 6px; margin-bottom: 14px;
+  }
+
+  /* ── Print layout ── */
+  @media print {
+    header, .tabs, .topbar, .container > *:not(#invoicePrintFrame),
+    .copy-toast, .modal-overlay { display: none !important; }
+    #invoicePrintFrame { display: block !important; }
+    body { background: #fff !important; color: #000 !important; }
+  }
+  #invoicePrintFrame {
+    display: none;
+    max-width: 800px; margin: 0 auto; padding: 48px;
+    font-family: var(--sans);
+  }
+  .print-header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+  .print-logo { max-height: 80px; max-width: 200px; object-fit: contain; }
+  .print-from { font-size: 0.85rem; line-height: 1.7; }
+  .print-inv-meta { text-align: right; }
+  .print-inv-number { font-size: 1.6rem; font-weight: 700; font-family: var(--mono); }
+  .print-bill-to { margin-bottom: 32px; }
+  .print-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .print-table th { background: #f5f4f0; font-size: 0.75rem; padding: 8px 12px; text-align: left; border-bottom: 2px solid #d8d6cc; }
+  .print-table td { padding: 8px 12px; font-size: 0.85rem; border-bottom: 1px solid #e8e6e0; }
+  .print-table td.right { text-align: right; }
+  .print-totals { float: right; width: 260px; margin-top: 8px; }
+  .print-totals table { width: 100%; }
+  .print-totals td { padding: 4px 8px; font-size: 0.85rem; }
+  .print-totals td:last-child { text-align: right; font-family: var(--mono); }
+  .print-total-row td { font-weight: 700; border-top: 2px solid #d8d6cc; padding-top: 8px; }
+  .print-notes { clear: both; margin-top: 48px; font-size: 0.82rem; color: #6b6960; }

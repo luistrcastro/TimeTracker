@@ -27,7 +27,7 @@ window.TT_CONFIG = {
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.0.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.1.0</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
@@ -56,10 +56,11 @@ window.TT_CONFIG = {
   <!-- Tabs -->
   <div style="display:flex;align-items:center;margin-bottom:20px;">
     <div class="tabs" style="margin-bottom:0;">
-      <button class="tab active" onclick="switchTab('day')">Day View</button>
-      <button class="tab" onclick="switchTab('week')">Week View</button>
-      <button class="tab" onclick="switchTab('replicon')">Billing</button>
-      <button class="tab" onclick="switchTab('data')">Data</button>
+      <button class="tab active" data-tab="day" onclick="switchTab('day')">Day View</button>
+      <button class="tab" data-tab="week" onclick="switchTab('week')">Week View</button>
+      <button class="tab" data-tab="replicon" onclick="switchTab('replicon')">Billing</button>
+      <button class="tab" data-tab="data" onclick="switchTab('data')">Data</button>
+      <button class="tab" data-tab="invoicing" onclick="switchTab('invoicing')">Invoicing</button>
     </div>
     <span style="margin-left:auto;font-family:var(--mono);font-size:0.72rem;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;">Contractor</span>
   </div>
@@ -76,8 +77,6 @@ window.TT_CONFIG = {
       </div>
       <div class="spacer"></div>
       <button class="btn btn-sm" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
-      <button class="btn btn-sm" onclick="markDayInvoiced(currentDate, true)" title="Mark all entries today as invoiced">✓ Invoice day</button>
-      <button class="btn btn-sm" onclick="markDayInvoiced(currentDate, false)" title="Clear invoiced flag for all entries today">○ Clear day</button>
     </div>
 
     <!-- Summary chips -->
@@ -115,8 +114,6 @@ window.TT_CONFIG = {
         <button class="today-btn" onclick="goToday()">today</button>
       </div>
       <div class="spacer"></div>
-      <button class="btn btn-sm" onclick="markWeekInvoiced(getWeekStart(currentDate), true)" title="Mark all entries this week as invoiced">✓ Invoice week</button>
-      <button class="btn btn-sm" onclick="markWeekInvoiced(getWeekStart(currentDate), false)" title="Clear invoiced flag for the whole week">○ Clear week</button>
       <div id="weekTotalChip" class="summary-chip" style="margin:0"></div>
     </div>
     <div id="weekBody"></div>
@@ -191,6 +188,115 @@ window.TT_CONFIG = {
     <div class="data-section">
       <h3>Stats</h3>
       <div id="statsBody" style="font-family:var(--mono); font-size:0.8rem; color:var(--text-muted); line-height:2;"></div>
+    </div>
+    <div class="data-section">
+      <h3>Company &amp; Invoicing Defaults</h3>
+      <p>Used on printed invoices. Stored locally in your browser.</p>
+      <div class="inv-form-grid" style="margin-top:14px;">
+        <div class="form-group">
+          <label class="form-label">Company / Your Name</label>
+          <input class="form-input" id="co-name" placeholder="Acme Consulting">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="co-email" type="email" placeholder="you@example.com">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Address</label>
+          <input class="form-input" id="co-address" placeholder="123 Main St, City, Province">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="co-phone">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Rate ($/hr)</label>
+          <input class="form-input mono" id="co-rate" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Tax Rate (%)</label>
+          <input class="form-input mono" id="co-tax" type="number" min="0" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Logo (PNG/JPG, max ~200KB)</label>
+          <input type="file" id="co-logo-file" accept="image/*" onchange="handleLogoUpload(event)" style="font-size:0.8rem;">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <div id="co-logo-preview" style="height:44px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:0.75rem;color:var(--text-faint);font-family:var(--mono);">No logo</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="applyCompanySettings()">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- ══ INVOICING TAB ══ -->
+  <div id="tab-invoicing" style="display:none">
+    <div class="data-section">
+      <h3>Create Invoice</h3>
+      <p>Select a client and optional date range to invoice uninvoiced time entries.</p>
+      <div class="inv-form-grid" style="margin-top:14px;">
+        <div class="form-group">
+          <label class="form-label">Client</label>
+          <div style="position:relative;" class="ac-wrap autocomplete-wrap">
+            <input class="form-input" id="inv-client" placeholder="Select a client" autocomplete="off">
+            <div class="autocomplete-list" id="ac-inv-client"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rate ($/hr)</label>
+          <input class="form-input mono" id="inv-rate" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date From (optional)</label>
+          <input class="form-input" id="inv-date-from" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date To (optional)</label>
+          <input class="form-input" id="inv-date-to" type="date">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="loadInvoiceableEntries()">Load Uninvoiced Entries</button>
+    </div>
+
+    <div class="data-section" id="inv-selection-section" style="display:none">
+      <h3>Select Entries</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="inv-summary-bar" id="inv-selection-summary" style="margin-bottom:0;flex:1;margin-right:12px;"></div>
+        <button class="btn btn-sm" onclick="selectAllInvoiceEntries()">Select all</button>
+      </div>
+      <div class="inv-entry-list" id="inv-entry-list"></div>
+      <div class="inv-form-grid">
+        <div class="form-group">
+          <label class="form-label">Invoice Date</label>
+          <input class="form-input" id="inv-created-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input class="form-input" id="inv-due-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tax Rate (%)</label>
+          <input class="form-input mono" id="inv-tax-rate" type="number" min="0" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input class="form-input" id="inv-notes" placeholder="e.g. NET 30">
+        </div>
+      </div>
+      <div class="inv-summary-bar" id="inv-totals-bar"></div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" onclick="createInvoice()">Create Invoice</button>
+        <button class="btn" style="margin-left:8px;" onclick="document.getElementById('inv-selection-section').style.display='none'">Cancel</button>
+      </div>
+    </div>
+
+    <div class="data-section">
+      <h3>Invoices</h3>
+      <div id="inv-list-body">
+        <div style="color:var(--text-faint);font-family:var(--mono);font-size:0.8rem;">No invoices yet.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -272,6 +378,7 @@ window.TT_CONFIG = {
         <tr><td><span class="kbd">2</span></td><td>Week View</td></tr>
         <tr><td><span class="kbd">3</span></td><td>Billing</td></tr>
         <tr><td><span class="kbd">4</span></td><td>Settings</td></tr>
+        <tr><td><span class="kbd">5</span></td><td>Invoicing</td></tr>
         <tr><td colspan="2" class="shortcuts-section">Entries</td></tr>
         <tr><td><span class="kbd">N</span></td><td>Focus new-entry row client field</td></tr>
         <tr><td><span class="kbd">Ctrl</span> <span class="kbd-sep">+</span> <span class="kbd">Z</span></td><td>Undo last delete</td></tr>
@@ -285,6 +392,18 @@ window.TT_CONFIG = {
     <div style="font-size:0.73rem;color:var(--text-faint);font-family:var(--mono);margin-top:16px;">
       Global shortcuts are disabled while typing in any input field.
     </div>
+  </div>
+</div>
+
+<!-- Invoice Detail Modal -->
+<div class="modal-overlay" id="invoiceModal">
+  <div class="modal" style="width:720px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-title" style="margin-bottom:0;" id="invoiceModalTitle">Invoice</div>
+      <span id="invoiceModalBadge"></span>
+    </div>
+    <div id="invoiceModalBody"></div>
+    <div class="modal-actions" id="invoiceModalActions"></div>
   </div>
 </div>
 
@@ -486,6 +605,7 @@ function applyJiraPattern() {
 function populateSettingsTab() {
   const input = document.getElementById('jiraPatternInput');
   if (input) input.value = _jiraPattern;
+  populateCompanySettings();
 }
 
 // ══════════════════════════════════════════════
@@ -593,8 +713,7 @@ function buildNewRow(prefillStart) {
 
   const tdLogged = document.createElement('td');
   tdLogged.innerHTML = `<input type="checkbox" id="nr-logged" title="Will save as logged">`;
-  const tdInvoiced = document.createElement('td');
-  tdInvoiced.innerHTML = `<input type="checkbox" id="nr-invoiced" title="Mark as invoiced">`;
+  const tdInvPlaceholder = document.createElement('td');
 
   const tdActions = document.createElement('td');
   tdActions.innerHTML = `
@@ -603,7 +722,7 @@ function buildNewRow(prefillStart) {
       <button class="btn btn-sm" onclick="clearNewRow()" title="Clear fields">Clear</button>
     </div>`;
 
-  tr.append(tdClient, tdTask, tdDesc, tdStart, tdFinish, tdDur, tdAcc, tdLogged, tdInvoiced, tdActions);
+  tr.append(tdClient, tdTask, tdDesc, tdStart, tdFinish, tdDur, tdAcc, tdLogged, tdInvPlaceholder, tdActions);
 
   if (prefillStart) tr.querySelector('#nr-start').value = prefillStart;
 
@@ -721,7 +840,7 @@ async function saveNewRow() {
     start, finish,
     duration: minutesToHHMM(durMins),
     logged: document.getElementById('nr-logged')?.checked || false,
-    invoiced: document.getElementById('nr-invoiced')?.checked || false,
+    invoiced: false,
   };
 
   // Auto-register client / task in reference data
@@ -741,7 +860,6 @@ function clearNewRow() {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const cb = document.getElementById('nr-logged'); if (cb) cb.checked = false;
-  const cb2 = document.getElementById('nr-invoiced'); if (cb2) cb2.checked = false;
   const row = document.getElementById('new-entry-row'); if (row) row.style.background = '';
   document.getElementById('nr-client')?.focus();
 }
@@ -1067,14 +1185,6 @@ async function toggleLogged(id) {
   renderAll();
 }
 
-async function toggleInvoiced(id) {
-  const entries = loadEntries();
-  const e = entries.find(x => x.id === id);
-  if (e) e.invoiced = !e.invoiced;
-  await saveEntries(entries);
-  renderAll();
-}
-
 async function markDayInvoiced(dateStr, val) {
   const entries = loadEntries();
   entries.filter(e => e.date === dateStr).forEach(e => e.invoiced = val);
@@ -1090,6 +1200,477 @@ async function markWeekInvoiced(weekStart, val) {
   renderAll();
 }
 
+// ══════════════════════════════════════════════
+//  Invoice data layer
+// ══════════════════════════════════════════════
+const INV_API         = 'http://localhost:5000/api/contractor/invoices';
+const INV_STORAGE_KEY = 'timetracker_contractor_invoices_v1';
+let _invoices = [];
+
+async function initInvoices() {
+  try {
+    const res = await fetch(INV_API, { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) throw new Error();
+    _invoices = await res.json();
+  } catch {
+    _invoices = JSON.parse(localStorage.getItem(INV_STORAGE_KEY) || '[]');
+  }
+}
+
+function loadInvoices() { return _invoices; }
+
+async function saveInvoices(invoices) {
+  _invoices = invoices;
+  if (_usingServer) {
+    try {
+      await fetch(INV_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(_invoices),
+      });
+      return;
+    } catch {}
+  }
+  localStorage.setItem(INV_STORAGE_KEY, JSON.stringify(_invoices));
+}
+
+function nextInvoiceNumber() {
+  const max = _invoices.reduce((m, inv) => {
+    const n = parseInt((inv.number || '').replace(/\D/g, ''), 10) || 0;
+    return Math.max(m, n);
+  }, 0);
+  return `INV-${String(max + 1).padStart(4, '0')}`;
+}
+
+// ══════════════════════════════════════════════
+//  Company settings
+// ══════════════════════════════════════════════
+const COMPANY_KEY = 'timetracker_company_settings';
+
+function loadCompanySettings() {
+  try { return JSON.parse(localStorage.getItem(COMPANY_KEY) || 'null') || {}; }
+  catch { return {}; }
+}
+function saveCompanySettings(obj) {
+  localStorage.setItem(COMPANY_KEY, JSON.stringify(obj));
+}
+
+function populateCompanySettings() {
+  const s = loadCompanySettings();
+  document.getElementById('co-name').value    = s.name    || '';
+  document.getElementById('co-email').value   = s.email   || '';
+  document.getElementById('co-address').value = s.address || '';
+  document.getElementById('co-phone').value   = s.phone   || '';
+  document.getElementById('co-rate').value    = s.defaultRate    || '';
+  document.getElementById('co-tax').value     = s.defaultTaxRate || '';
+  const preview = document.getElementById('co-logo-preview');
+  if (s.logo) {
+    preview.innerHTML = `<img src="${s.logo}" style="max-height:40px;max-width:120px;object-fit:contain;">
+      <button class="btn btn-sm" onclick="clearLogo()">✕</button>`;
+  } else {
+    preview.innerHTML = '<span style="font-size:0.75rem;color:var(--text-faint);font-family:var(--mono);">No logo</span>';
+  }
+}
+
+let _pendingLogo = undefined;
+
+function handleLogoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('co-logo-preview');
+    preview.innerHTML = `<img src="${e.target.result}" style="max-height:40px;max-width:120px;object-fit:contain;">
+      <button class="btn btn-sm" onclick="clearLogo()">✕</button>`;
+    _pendingLogo = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearLogo() {
+  _pendingLogo = '';
+  document.getElementById('co-logo-preview').innerHTML =
+    '<span style="font-size:0.75rem;color:var(--text-faint);font-family:var(--mono);">No logo</span>';
+  document.getElementById('co-logo-file').value = '';
+}
+
+function applyCompanySettings() {
+  const s = {
+    name:           document.getElementById('co-name').value.trim(),
+    email:          document.getElementById('co-email').value.trim(),
+    address:        document.getElementById('co-address').value.trim(),
+    phone:          document.getElementById('co-phone').value.trim(),
+    defaultRate:    parseFloat(document.getElementById('co-rate').value) || 0,
+    defaultTaxRate: parseFloat(document.getElementById('co-tax').value) || 0,
+    logo: _pendingLogo !== undefined ? _pendingLogo : (loadCompanySettings().logo || ''),
+  };
+  saveCompanySettings(s);
+  _pendingLogo = undefined;
+  showToast('Company settings saved');
+}
+
+// ══════════════════════════════════════════════
+//  Invoicing tab
+// ══════════════════════════════════════════════
+function renderInvoiceTab() {
+  renderInvoiceList();
+  const s = loadCompanySettings();
+  const rateEl = document.getElementById('inv-rate');
+  const taxEl  = document.getElementById('inv-tax-rate');
+  if (rateEl && !rateEl.value && s.defaultRate) rateEl.value = s.defaultRate;
+  if (taxEl  && !taxEl.value  && s.defaultTaxRate) taxEl.value = s.defaultTaxRate;
+  const todayVal = todayStr();
+  const cdEl = document.getElementById('inv-created-date');
+  const ddEl = document.getElementById('inv-due-date');
+  if (cdEl && !cdEl.value) cdEl.value = todayVal;
+  if (ddEl && !ddEl.value) ddEl.value = addDays(todayVal, 30);
+  // Wire client autocomplete
+  const clientEl = document.getElementById('inv-client');
+  const clientAc = document.getElementById('ac-inv-client');
+  if (clientEl && clientAc && !clientEl._acWired) {
+    setupClientAC(clientEl, clientAc);
+    clientEl._acWired = true;
+  }
+  // Live-update totals when rate or tax changes
+  const invRateEl = document.getElementById('inv-rate');
+  const invTaxEl  = document.getElementById('inv-tax-rate');
+  if (invRateEl && !invRateEl._wired) {
+    invRateEl.addEventListener('input', updateInvoiceTotals);
+    invRateEl._wired = true;
+  }
+  if (invTaxEl && !invTaxEl._wired) {
+    invTaxEl.addEventListener('input', updateInvoiceTotals);
+    invTaxEl._wired = true;
+  }
+}
+
+function loadInvoiceableEntries() {
+  const client   = document.getElementById('inv-client').value.trim();
+  const dateFrom = document.getElementById('inv-date-from').value;
+  const dateTo   = document.getElementById('inv-date-to').value;
+  const rate     = parseFloat(document.getElementById('inv-rate').value) || 0;
+
+  if (!client) { document.getElementById('inv-client').focus(); return; }
+
+  const entries = loadEntries().filter(e => {
+    if (e.client !== client) return false;
+    if (e.invoiced) return false;
+    if (dateFrom && e.date < dateFrom) return false;
+    if (dateTo   && e.date > dateTo)   return false;
+    return true;
+  }).sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+
+  if (!entries.length) {
+    alert(`No uninvoiced entries found for "${client}"${dateFrom || dateTo ? ' in that date range' : ''}.`);
+    return;
+  }
+
+  renderInvoiceEntryList(entries, rate);
+  document.getElementById('inv-selection-section').style.display = 'block';
+  updateInvoiceTotals();
+}
+
+function renderInvoiceEntryList(entries, rate) {
+  const list = document.getElementById('inv-entry-list');
+  list.innerHTML = entries.map(e => {
+    const mins = timeToMinutes(e.duration || '0:00');
+    const hrs  = minutesToDecimal(mins);
+    const amt  = (hrs * rate).toFixed(2);
+    const label = [e.task, e.description].filter(Boolean).join(' — ');
+    return `<label class="inv-entry-item">
+      <input type="checkbox" class="inv-entry-cb" data-id="${e.id}" data-mins="${mins}" checked>
+      <span class="inv-entry-meta">${esc(e.date)}&nbsp;·&nbsp;${esc(e.duration)}</span>
+      <span class="inv-entry-desc">${esc(label || e.client)}</span>
+      <span class="inv-entry-meta" style="margin-left:auto;">${hrs}h&nbsp;·&nbsp;$${amt}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.inv-entry-cb').forEach(cb =>
+    cb.addEventListener('change', updateInvoiceTotals)
+  );
+  window._invoiceableEntries = entries;
+}
+
+function selectAllInvoiceEntries() {
+  const cbs = [...document.querySelectorAll('.inv-entry-cb')];
+  const allChecked = cbs.every(cb => cb.checked);
+  cbs.forEach(cb => { cb.checked = !allChecked; });
+  updateInvoiceTotals();
+}
+
+function updateInvoiceTotals() {
+  const rate    = parseFloat(document.getElementById('inv-rate')?.value) || 0;
+  const taxRate = parseFloat(document.getElementById('inv-tax-rate')?.value) || 0;
+  const cbs     = [...document.querySelectorAll('.inv-entry-cb:checked')];
+  const totalMins = cbs.reduce((s, cb) => s + parseInt(cb.dataset.mins, 10), 0);
+  const hrs       = minutesToDecimal(totalMins);
+  const subtotal  = hrs * rate;
+  const taxAmt    = subtotal * (taxRate / 100);
+  const total     = subtotal + taxAmt;
+
+  const summEl = document.getElementById('inv-selection-summary');
+  const totEl  = document.getElementById('inv-totals-bar');
+  if (summEl) summEl.textContent = `${cbs.length} entr${cbs.length === 1 ? 'y' : 'ies'} selected · ${minutesToHHMM(totalMins)} (${hrs}h)`;
+  if (totEl) {
+    totEl.innerHTML = `Subtotal: <strong>$${subtotal.toFixed(2)}</strong>` +
+      (taxRate > 0 ? ` &nbsp;·&nbsp; Tax (${taxRate}%): <strong>$${taxAmt.toFixed(2)}</strong>` : '') +
+      ` &nbsp;·&nbsp; <strong>Total: $${total.toFixed(2)}</strong>`;
+  }
+}
+
+async function createInvoice() {
+  const client      = document.getElementById('inv-client').value.trim();
+  const rate        = parseFloat(document.getElementById('inv-rate').value) || 0;
+  const taxRate     = parseFloat(document.getElementById('inv-tax-rate').value) || 0;
+  const createdDate = document.getElementById('inv-created-date').value || todayStr();
+  const dueDate     = document.getElementById('inv-due-date').value || '';
+  const notes       = document.getElementById('inv-notes').value.trim();
+
+  const cbs = [...document.querySelectorAll('.inv-entry-cb:checked')];
+  if (!cbs.length) { alert('Select at least one entry.'); return; }
+
+  const entryIds  = cbs.map(cb => cb.dataset.id);
+  const totalMins = cbs.reduce((s, cb) => s + parseInt(cb.dataset.mins, 10), 0);
+  const hrs       = minutesToDecimal(totalMins);
+  const subtotal  = parseFloat((hrs * rate).toFixed(4));
+  const taxAmount = parseFloat((subtotal * taxRate / 100).toFixed(4));
+  const total     = parseFloat((subtotal + taxAmount).toFixed(4));
+
+  const invoice = {
+    id:          crypto.randomUUID(),
+    number:      nextInvoiceNumber(),
+    createdDate,
+    dueDate,
+    client,
+    entryIds,
+    rate,
+    subtotal,
+    taxRate,
+    taxAmount,
+    total,
+    status: 'draft',
+    notes,
+  };
+
+  const invoices = loadInvoices();
+  invoices.push(invoice);
+  await saveInvoices(invoices);
+
+  // Mark entries as invoiced
+  const entries = loadEntries();
+  const idSet   = new Set(entryIds);
+  entries.forEach(e => { if (idSet.has(e.id)) e.invoiced = true; });
+  await saveEntries(entries);
+
+  // Reset UI
+  document.getElementById('inv-selection-section').style.display = 'none';
+  document.getElementById('inv-client').value    = '';
+  document.getElementById('inv-date-from').value = '';
+  document.getElementById('inv-date-to').value   = '';
+  window._invoiceableEntries = [];
+
+  renderInvoiceList();
+  renderDayView();
+  showToast(`${invoice.number} created`);
+}
+
+function renderInvoiceList() {
+  const invoices = [...loadInvoices()]
+    .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
+  const body = document.getElementById('inv-list-body');
+  if (!body) return;
+  if (!invoices.length) {
+    body.innerHTML = `<div style="color:var(--text-faint);font-family:var(--mono);font-size:0.8rem;padding:8px 0;">No invoices yet.</div>`;
+    return;
+  }
+  body.innerHTML = `
+    <div class="table-wrap" style="overflow:auto;">
+      <table class="invoice-list-table">
+        <thead>
+          <tr>
+            <th>Number</th><th>Client</th><th>Date</th><th>Due</th>
+            <th>Total</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${invoices.map(inv => `
+            <tr>
+              <td class="mono">${esc(inv.number)}</td>
+              <td>${esc(inv.client)}</td>
+              <td class="mono">${inv.createdDate}</td>
+              <td class="mono">${inv.dueDate || '—'}</td>
+              <td class="mono">$${Number(inv.total).toFixed(2)}</td>
+              <td><span class="inv-badge inv-badge-${inv.status}">${inv.status}</span></td>
+              <td><button class="btn btn-sm" onclick="openInvoiceDetail('${inv.id}')">View</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  Invoice detail modal
+// ══════════════════════════════════════════════
+function openInvoiceDetail(id) {
+  const inv = loadInvoices().find(i => i.id === id);
+  if (!inv) return;
+  document.getElementById('invoiceModalTitle').textContent = inv.number;
+  document.getElementById('invoiceModalBadge').innerHTML =
+    `<span class="inv-badge inv-badge-${inv.status}">${inv.status}</span>`;
+
+  const entries = loadEntries().filter(e => inv.entryIds.includes(e.id));
+
+  document.getElementById('invoiceModalBody').innerHTML = `
+    <p style="margin-bottom:12px;font-size:0.82rem;color:var(--text-muted);">
+      Client: <strong>${esc(inv.client)}</strong> &nbsp;·&nbsp;
+      Created: ${inv.createdDate} &nbsp;·&nbsp;
+      Due: ${inv.dueDate || '—'} &nbsp;·&nbsp;
+      Rate: $${inv.rate}/hr
+    </p>
+    <table class="invoice-list-table" style="margin-bottom:14px;">
+      <thead><tr><th>Date</th><th>Task</th><th>Description</th><th>Duration</th><th>Amount</th></tr></thead>
+      <tbody>
+        ${entries.map(e => {
+          const hrs = minutesToDecimal(timeToMinutes(e.duration || '0:00'));
+          return `<tr>
+            <td class="mono">${e.date}</td>
+            <td>${esc(e.task || '')}</td>
+            <td>${esc(e.description || '')}</td>
+            <td class="mono">${e.duration} (${hrs}h)</td>
+            <td class="mono">$${(hrs * inv.rate).toFixed(2)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div class="inv-summary-bar">
+      Subtotal: <strong>$${Number(inv.subtotal).toFixed(2)}</strong>
+      ${inv.taxRate > 0 ? ` &nbsp;·&nbsp; Tax (${inv.taxRate}%): <strong>$${Number(inv.taxAmount).toFixed(2)}</strong>` : ''}
+      &nbsp;·&nbsp; <strong>Total: $${Number(inv.total).toFixed(2)}</strong>
+    </div>
+    ${inv.notes ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">Notes: ${esc(inv.notes)}</p>` : ''}
+    <div style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label class="form-label" style="margin:0;">Status</label>
+      <select class="form-input" id="invDetailStatus" style="width:140px;">
+        ${['draft','sent','paid','void'].map(s =>
+          `<option value="${s}" ${inv.status === s ? 'selected' : ''}>${s}</option>`
+        ).join('')}
+      </select>
+    </div>`;
+
+  document.getElementById('invoiceModalActions').innerHTML = `
+    <button class="btn" onclick="closeInvoiceModal()">Close</button>
+    <button class="btn" onclick="printInvoice('${inv.id}')">Print / PDF</button>
+    <button class="btn" style="color:#dc2626;border-color:#dc2626;" onclick="voidInvoice('${inv.id}')">Void &amp; Unmark</button>
+    <button class="btn btn-primary" onclick="updateInvoiceStatus('${inv.id}')">Save Status</button>`;
+
+  document.getElementById('invoiceModal').classList.add('show');
+}
+
+function closeInvoiceModal() {
+  document.getElementById('invoiceModal').classList.remove('show');
+}
+
+document.getElementById('invoiceModal').addEventListener('click', function(e) {
+  if (e.target === this) closeInvoiceModal();
+});
+
+async function updateInvoiceStatus(id) {
+  const invoices = loadInvoices();
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return;
+  inv.status = document.getElementById('invDetailStatus').value;
+  await saveInvoices(invoices);
+  closeInvoiceModal();
+  renderInvoiceList();
+  showToast('Status updated');
+}
+
+async function voidInvoice(id) {
+  if (!confirm('Void this invoice? All its entries will be marked as uninvoiced.')) return;
+  const invoices = loadInvoices();
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return;
+  inv.status = 'void';
+  await saveInvoices(invoices);
+
+  const entries = loadEntries();
+  const idSet = new Set(inv.entryIds);
+  entries.forEach(e => { if (idSet.has(e.id)) e.invoiced = false; });
+  await saveEntries(entries);
+
+  closeInvoiceModal();
+  renderInvoiceList();
+  renderDayView();
+  showToast('Invoice voided — entries unmarked');
+}
+
+// ══════════════════════════════════════════════
+//  Print to PDF
+// ══════════════════════════════════════════════
+function printInvoice(id) {
+  const inv = loadInvoices().find(i => i.id === id);
+  if (!inv) return;
+  const s = loadCompanySettings();
+  const entries = loadEntries().filter(e => inv.entryIds.includes(e.id))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+
+  const frame = document.getElementById('invoicePrintFrame');
+  frame.innerHTML = `
+    <div class="print-header">
+      <div>
+        ${s.logo ? `<img class="print-logo" src="${s.logo}" alt="Logo"><br>` : ''}
+        <div class="print-from" style="margin-top:${s.logo ? '10px' : '0'}">
+          <strong>${esc(s.name || '')}</strong>
+          ${s.address ? `<br>${esc(s.address)}` : ''}
+          ${s.phone   ? `<br>${esc(s.phone)}`   : ''}
+          ${s.email   ? `<br>${esc(s.email)}`   : ''}
+        </div>
+      </div>
+      <div class="print-inv-meta">
+        <div class="print-inv-number">Invoice</div>
+        <div class="print-inv-number" style="font-size:1.1rem;margin-top:4px;">${esc(inv.number)}</div>
+        <div style="font-size:0.85rem;margin-top:12px;color:#6b6960;line-height:1.8;">
+          Date: ${inv.createdDate}<br>
+          ${inv.dueDate ? `Due: ${inv.dueDate}<br>` : ''}
+          Status: ${inv.status}
+        </div>
+      </div>
+    </div>
+    <div class="print-bill-to">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#9a9890;margin-bottom:4px;">Bill To</div>
+      <strong>${esc(inv.client)}</strong>
+    </div>
+    <table class="print-table">
+      <thead>
+        <tr><th>Date</th><th>Description</th><th style="text-align:right;">Hours</th><th style="text-align:right;">Rate</th><th style="text-align:right;">Amount</th></tr>
+      </thead>
+      <tbody>
+        ${entries.map(e => {
+          const hrs = minutesToDecimal(timeToMinutes(e.duration || '0:00'));
+          const label = [e.task, e.description].filter(Boolean).join(' — ');
+          return `<tr>
+            <td>${e.date}</td>
+            <td>${esc(label || e.client)}</td>
+            <td class="right">${hrs}</td>
+            <td class="right">$${inv.rate.toFixed(2)}</td>
+            <td class="right">$${(hrs * inv.rate).toFixed(2)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="overflow:hidden;">
+      <div class="print-totals">
+        <table>
+          <tr><td>Subtotal</td><td>$${Number(inv.subtotal).toFixed(2)}</td></tr>
+          ${inv.taxRate > 0 ? `<tr><td>Tax (${inv.taxRate}%)</td><td>$${Number(inv.taxAmount).toFixed(2)}</td></tr>` : ''}
+          <tr class="print-total-row"><td>Total</td><td>$${Number(inv.total).toFixed(2)}</td></tr>
+        </table>
+      </div>
+    </div>
+    ${inv.notes ? `<div class="print-notes">Notes: ${esc(inv.notes)}</div>` : ''}`;
+
+  window.print();
+  setTimeout(() => { frame.innerHTML = ''; }, 1000);
+}
 
 function cycleSort(col) {
   if (_sortCol !== col) { _sortCol = col; _sortDir = 'asc'; }
@@ -1179,8 +1760,10 @@ function renderDayView(newRowPrefillStart) {
           onchange="toggleLogged('${e.id}')" title="${jira ? 'Mark as logged in Jira' : 'No Jira ticket'}">
       </td>
       <td>
-        <input type="checkbox" ${e.invoiced ? 'checked' : ''}
-          onchange="toggleInvoiced('${e.id}')" title="Mark as invoiced">
+        <span class="invoiced-icon ${e.invoiced ? 'is-invoiced' : 'not-invoiced'}"
+              title="${e.invoiced ? 'Invoiced' : 'Not invoiced'}">
+          ${e.invoiced ? '✓' : '✗'}
+        </span>
       </td>
       <td>
         <div class="row-actions">
@@ -1631,8 +2214,7 @@ function renderWeekView() {
               <td class="mono">${e._accTime}</td>
               <td><input type="checkbox" ${e.logged ? 'checked' : ''} ${!jira ? 'disabled style="opacity:0.2"' : ''}
                 onchange="toggleLogged('${e.id}')" title="${jira ? 'Mark as logged' : 'No Jira ticket'}"></td>
-              <td><input type="checkbox" ${e.invoiced ? 'checked' : ''}
-                onchange="toggleInvoiced('${e.id}')" title="Mark as invoiced"></td>
+              <td><span class="invoiced-icon ${e.invoiced ? 'is-invoiced' : 'not-invoiced'}" title="${e.invoiced ? 'Invoiced' : 'Not invoiced'}">${e.invoiced ? '✓' : '✗'}</span></td>
               <td><div class="row-actions">
                 <button class="icon-btn" onclick="openEdit('${e.id}')" title="Edit">✎</button>
                 <button class="icon-btn del" onclick="deleteEntry('${e.id}')" title="Delete">✕</button>
@@ -1670,6 +2252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   syncDatePickers();
   await initData();
+  await initInvoices();
   startHeartbeat();
   startClock();
   updateToggleUI();
@@ -1686,6 +2269,7 @@ trapFocus(document.getElementById('editModal'));
 trapFocus(document.getElementById('splitModal'));
 trapFocus(document.getElementById('copyFromModal'));
 trapFocus(document.getElementById('shortcutsModal'));
+trapFocus(document.getElementById('invoiceModal'));
 
 document.getElementById('shortcutsModal').addEventListener('click', function(e) {
   if (e.target === this) toggleShortcutsHelp();
@@ -1696,7 +2280,8 @@ function handleGlobalKey(e) {
   const splitOpen     = document.getElementById('splitModal').classList.contains('show');
   const copyFromOpen  = document.getElementById('copyFromModal').classList.contains('show');
   const helpOpen      = document.getElementById('shortcutsModal').classList.contains('show');
-  const anyModalOpen  = editOpen || splitOpen || copyFromOpen || helpOpen;
+  const invoiceOpen   = document.getElementById('invoiceModal').classList.contains('show');
+  const anyModalOpen  = editOpen || splitOpen || copyFromOpen || helpOpen || invoiceOpen;
 
   // ── Modal-specific: Escape closes, Enter saves ──────────────────
   if (e.key === 'Escape') {
@@ -1704,6 +2289,7 @@ function handleGlobalKey(e) {
     if (splitOpen)    { closeSplitModal();       e.preventDefault(); return; }
     if (copyFromOpen) { closeCopyFrom();         e.preventDefault(); return; }
     if (helpOpen)     { toggleShortcutsHelp();   e.preventDefault(); return; }
+    if (invoiceOpen)  { closeInvoiceModal();     e.preventDefault(); return; }
   }
 
   if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
@@ -1751,10 +2337,11 @@ function handleGlobalKey(e) {
     case 't':
     case 'T':
       e.preventDefault(); goToday(); break;
-    case '1': e.preventDefault(); switchTab('day');      break;
-    case '2': e.preventDefault(); switchTab('week');     break;
-    case '3': e.preventDefault(); switchTab('replicon'); break;
-    case '4': e.preventDefault(); switchTab('data');     break;
+    case '1': e.preventDefault(); switchTab('day');       break;
+    case '2': e.preventDefault(); switchTab('week');      break;
+    case '3': e.preventDefault(); switchTab('replicon');  break;
+    case '4': e.preventDefault(); switchTab('data');      break;
+    case '5': e.preventDefault(); switchTab('invoicing'); break;
     case 'n':
     case 'N':
       e.preventDefault();
@@ -1769,5 +2356,6 @@ function handleGlobalKey(e) {
 document.addEventListener('keydown', handleGlobalKey);
 
 </script>
+<div id="invoicePrintFrame"></div>
 </body>
 </html>

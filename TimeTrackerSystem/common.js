@@ -425,20 +425,20 @@ function renderAll() {
 		renderWeekView();
 	if (document.getElementById('tab-replicon').style.display !== 'none')
 		renderRepliconView();
+	if (document.getElementById('tab-invoicing')?.style.display !== 'none' && typeof renderInvoiceTab === 'function')
+		renderInvoiceTab();
 	document.getElementById('headerDate').textContent =
 		formatDateHeader(currentDate);
 }
 
 function switchTab(name) {
-	['day', 'week', 'replicon', 'data'].forEach((t) => {
-		document.getElementById('tab-' + t).style.display =
-			t === name ? 'block' : 'none';
+	['day', 'week', 'replicon', 'data', 'invoicing'].forEach((t) => {
+		const el = document.getElementById('tab-' + t);
+		if (el) el.style.display = t === name ? 'block' : 'none';
 	});
 	document.querySelectorAll('.tab').forEach((btn, i) => {
-		btn.classList.toggle(
-			'active',
-			['day', 'week', 'replicon', 'data'][i] === name,
-		);
+		const tabName = btn.dataset.tab || ['day', 'week', 'replicon', 'data', 'invoicing'][i];
+		btn.classList.toggle('active', tabName === name);
 	});
 	if (name === 'week') renderWeekView();
 	if (name === 'data') {
@@ -446,6 +446,7 @@ function switchTab(name) {
 		populateSettingsTab();
 	}
 	if (name === 'replicon') renderRepliconView();
+	if (name === 'invoicing' && typeof renderInvoiceTab === 'function') renderInvoiceTab();
 }
 
 // ══════════════════════════════════════════════

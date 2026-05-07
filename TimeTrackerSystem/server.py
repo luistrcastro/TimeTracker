@@ -69,6 +69,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_json(load_data('data-replicon.json'))
         elif self.path == '/api/contractor/entries':
             self.send_json(load_data('data-contractor.json'))
+        elif self.path == '/api/contractor/invoices':
+            self.send_json(load_data('data-contractor-invoices.json'))
         else:
             super().do_GET()
 
@@ -79,6 +81,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._handle_post('data-replicon.json')
         elif self.path == '/api/contractor/entries':
             self._handle_post('data-contractor.json')
+        elif self.path == '/api/contractor/invoices':
+            self._handle_post('data-contractor-invoices.json')
         else:
             self.send_error(404)
 
