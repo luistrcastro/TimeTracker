@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v2.0.0
+**Current version:** v2.1.0 (contractor.html only)
 
 ---
 
@@ -30,6 +30,7 @@ TimeTrackerSystem/
   server.py                      ← Python HTTP server (~100 lines)
   data-replicon.json             ← Replicon entries (auto-created on first save)
   data-contractor.json           ← Contractor entries (auto-created on first save)
+  data-contractor-invoices.json  ← Contractor invoices (auto-created on first invoice save)
   CLAUDE.md                      ← This file
 ```
 
@@ -43,6 +44,7 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
 ### API routes
 - `/api/replicon/entries` → `data-replicon.json`
 - `/api/contractor/entries` → `data-contractor.json`
+- `/api/contractor/invoices` → `data-contractor-invoices.json`
 - `/api/entries` → `data.json` (legacy backward-compat)
 
 ---
@@ -85,7 +87,8 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
   "start": "08:00",
   "finish": "08:45",
   "duration": "0:45",
-  "logged": false
+  "logged": false,
+  "invoiced": false
 }
 ```
 
@@ -94,6 +97,38 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
 - `duration` is always `finish - start` — never stored independently
 - `logged` is a boolean — only relevant when description matches the Jira pattern (configurable via Settings tab, stored in `timetracker_jira_pattern`)
 - `acc_time` (accumulated time for the day) is **always computed on render**, never stored
+- `invoiced` is a boolean (contractor only) — set to `true` by `createInvoice()`, reverted to `false` by `voidInvoice()`; never set directly by the user
+
+### Invoice Schema (contractor only)
+```json
+{
+  "id": "uuid-v4",
+  "number": "INV-0001",
+  "createdDate": "YYYY-MM-DD",
+  "dueDate": "YYYY-MM-DD",
+  "client": "ClientName",
+  "entryIds": ["uuid", "uuid"],
+  "rate": 85.00,
+  "subtotal": 637.50,
+  "taxRate": 13,
+  "taxAmount": 82.88,
+  "total": 720.38,
+  "status": "draft",
+  "notes": ""
+}
+```
+Status values: `draft | sent | paid | void`
+
+### Company Settings (contractor only)
+Stored in `localStorage` key `timetracker_company_settings`:
+```json
+{
+  "name": "", "address": "", "phone": "", "email": "",
+  "logo": "",
+  "defaultRate": 0, "defaultTaxRate": 0
+}
+```
+Logo stored as base64 data URL. Edited via the Company & Invoicing Defaults card in the Settings tab.
 
 ### Key Data Functions
 | Function | Description |
@@ -103,6 +138,9 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
 | `persistEntries()` | Writes to server or localStorage fallback (async) |
 | `initData()` | Loads from server on startup, migrates localStorage if needed |
 | `heartbeat()` | Runs every 3 min, handles server up/down detection |
+| `loadInvoices()` | Returns in-memory `_invoices` array (sync) — contractor only |
+| `saveInvoices(arr)` | Updates `_invoices` and persists to server or localStorage — contractor only |
+| `initInvoices()` | Loads invoices from server on startup — contractor only |
 
 ---
 
@@ -112,7 +150,8 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
 - **Day View** — main entry table for selected date + inline new-entry row
 - **Week View** — Sat–Fri week, grouped by day, read-only (no entry from here)
 - **Replicon** — compiled view: entries grouped by Project+SubProject, hours summed, comments concatenated
-- **Settings** — configuration (Jira pattern), export JSON, export CSV, import JSON, stats
+- **Settings** — configuration (Jira pattern), export JSON, export CSV, import JSON, stats; also contains Company & Invoicing Defaults section (contractor only)
+- **Invoicing** — (contractor only) create invoices from uninvoiced entries, view/manage past invoices, print to PDF
 
 ### State Variables
 ```javascript
@@ -137,7 +176,9 @@ let JIRA_RE          // RegExp built from _jiraPattern
 | `renderWeekView()` | Builds Sat–Fri week blocks |
 | `renderRepliconView()` | Builds compiled Replicon table |
 | `renderStats()` | Updates Settings tab stats |
-| `populateSettingsTab()` | Fills Settings tab inputs (Jira pattern) from current state |
+| `populateSettingsTab()` | Fills Settings tab inputs (Jira pattern) from current state; also calls `populateCompanySettings()` in contractor |
+| `renderInvoiceTab()` | Pre-fills rate/tax defaults from company settings, wires autocomplete — contractor only |
+| `renderInvoiceList()` | Rebuilds invoice table sorted by date descending — contractor only |
 
 **Important:** `renderDayView` always computes acc times on **chronological** order first, then applies display sort. Acc Time always reflects chronological order regardless of sort.
 
@@ -227,6 +268,54 @@ let JIRA_RE          // RegExp built from _jiraPattern
 - Cascade button available (same logic as edit modal cascade)
 - On save: source entry is deleted, split rows replace it
 
+### Invoicing (contractor.html only)
+
+**Create Invoice flow:**
+1. Select client (autocomplete from existing entries), enter hourly rate (defaults to company settings), optionally filter by date range
+2. Click "Load Uninvoiced Entries" → checklist of all `invoiced: false` entries for that client
+3. Select/deselect entries; live totals bar shows subtotal / tax / total
+4. Fill invoice date, due date, tax rate, notes → "Create Invoice"
+5. On create: new invoice object saved to `data-contractor-invoices.json`; all selected entries marked `invoiced: true`; day view updates to show ✓
+
+**Invoice detail modal** (`#invoiceModal`):
+- Opened by "View" button in invoice list → `openInvoiceDetail(id)`
+- Shows invoice number, client, dates, entry table with per-row amounts, totals
+- Status dropdown: draft → sent → paid → void
+- "Save Status" — updates status only
+- "Void & Unmark Entries" — sets `status: 'void'`, reverts all `entryIds` entries to `invoiced: false`
+- "Print / PDF" → `printInvoice(id)` — injects HTML into `#invoicePrintFrame`, calls `window.print()`
+
+**Read-only invoiced icon in Day/Week views:**
+- Replaced checkbox with `<span class="invoiced-icon is-invoiced|not-invoiced">✓|✗</span>`
+- `toggleInvoiced()` removed; "✓ Invoice day" / "○ Clear day" / "✓ Invoice week" / "○ Clear week" topbar buttons removed
+- `invoiced` field is now written only by `createInvoice()` and `voidInvoice()`
+
+**Key invoice functions:**
+| Function | Description |
+|---|---|
+| `initInvoices()` | Fetch from `/api/contractor/invoices`, fall back to localStorage |
+| `nextInvoiceNumber()` | Scans `_invoices` max number, returns `INV-000N` |
+| `loadInvoiceableEntries()` | Filters entries by client + not invoiced + date range |
+| `updateInvoiceTotals()` | Live subtotal/tax/total in summary bar |
+| `createInvoice()` | Validates, builds invoice, saves, marks entries invoiced, re-renders |
+| `openInvoiceDetail(id)` | Populates and shows invoice modal |
+| `voidInvoice(id)` | Sets status void, unmarks entries, saves both, re-renders |
+| `printInvoice(id)` | Builds print HTML into `#invoicePrintFrame`, calls `window.print()` |
+
+**Amount calculation:** `minutesToDecimal(timeToMinutes(e.duration)) × rate` (rounds to nearest 0.25h)
+
+**Company Settings:**
+- Stored in localStorage key `timetracker_company_settings`
+- Fields: name, email, address, phone, logo (base64), defaultRate, defaultTaxRate
+- Edited via the "Company & Invoicing Defaults" card in the Settings (Data) tab
+- Logo: file input → `FileReader.readAsDataURL()` → preview + stored in settings
+- Applied by `applyCompanySettings()` button; auto-loaded on startup via `populateCompanySettings()`
+
+**Print to PDF:**
+- `@media print` CSS hides everything except `#invoicePrintFrame`
+- Print frame contains: company logo + name (header), "from" address block, invoice number/date/due, bill-to client, entry table with date/description/hours/rate/amount columns, subtotal/tax/total block, notes
+- `window.print()` → browser's native print dialog → "Save as PDF"
+
 
 - Sortable columns: Project, Sub Project, Start
 - 3-state cycle: asc → desc → default (chronological)
@@ -264,6 +353,7 @@ A global `keydown` listener (`handleGlobalKey`) handles all shortcuts. Global sh
 | `→` / `]` | Next day (`changeDate(1)`) |
 | `T` | Go to today (`goToday()`) |
 | `1` / `2` / `3` / `4` | Switch to Day / Week / Replicon / Settings tab |
+| `5` | Switch to Invoicing tab (contractor only) |
 | `N` | Focus new-entry row project field |
 | `Ctrl+Z` | Undo last delete (only if `_deletedEntry` is set) |
 | `?` | Toggle keyboard shortcuts help overlay |
@@ -284,7 +374,7 @@ A global `keydown` listener (`handleGlobalKey`) handles all shortcuts. Global sh
 - `openCopyFrom()` focuses `#copyFromDate` on open
 
 **Focus trap:**
-- `trapFocus(modalEl)` is called once per modal at init. Tab from the last focusable element wraps to the first; Shift+Tab from the first wraps to the last. Applied to `editModal`, `splitModal`, `copyFromModal`, `shortcutsModal`.
+- `trapFocus(modalEl)` is called once per modal at init. Tab from the last focusable element wraps to the first; Shift+Tab from the first wraps to the last. Applied to `editModal`, `splitModal`, `copyFromModal`, `shortcutsModal`, `invoiceModal` (contractor only).
 
 **Shortcuts help overlay:**
 - `<div id="shortcutsModal">` — styled like other modals, lists all shortcuts in a table
@@ -329,10 +419,13 @@ All CSS is in a single `<style>` block in `<head>`. Uses CSS custom properties (
 
 ## Python Server (server.py)
 
-~80 lines. Extends `SimpleHTTPRequestHandler` to serve `index.html` statically and add two API endpoints:
+~145 lines. Extends `SimpleHTTPRequestHandler` to serve static files and add generic JSON API endpoints. `load_data(filename)` and `_handle_post(filename)` are generic — adding a new data file requires only 2 lines in `do_GET` and 2 lines in `do_POST`.
 
-- `GET /api/entries` → reads and returns `data.json`
-- `POST /api/entries` → receives JSON array, writes to `data.json`
+Current endpoints:
+- `GET/POST /api/entries` → `data.json` (legacy)
+- `GET/POST /api/replicon/entries` → `data-replicon.json`
+- `GET/POST /api/contractor/entries` → `data-contractor.json`
+- `GET/POST /api/contractor/invoices` → `data-contractor-invoices.json`
 
 `data.json` path is always relative to `server.py`'s own directory (`os.path.dirname(__file__)`).
 Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If changed, also update `const API` in `index.html`.
@@ -349,6 +442,8 @@ Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If change
 | `timetracker_theme` | `'dark'` or `'light'` | Manual theme override |
 | `timetracker_12h` | `'true'` or `'false'` | Clock format preference |
 | `timetracker_jira_pattern` | regex string | Jira ticket detection pattern (default `PROJ-\d+`) |
+| `timetracker_contractor_invoices_v1` | JSON array | Fallback invoice storage when server is down (contractor only) |
+| `timetracker_company_settings` | JSON object | Company name/address/phone/email/logo/defaultRate/defaultTaxRate (contractor only) |
 
 ---
 
@@ -375,6 +470,7 @@ Semantic versioning (major.minor.patch).
 - `v1.7.0` — Power-user keyboard shortcuts: global shortcuts (←/→/[/] date nav, T today, 1–4 tab switch, N new entry, Ctrl+Z undo, ? help); modal Enter-to-save and Escape-to-close; focus-on-open for all modals; Tab focus trap in all modals; keyboard shortcuts help overlay (? button in header)
 - `v1.7.1` — Autocomplete dropdown flips above the input when there isn't enough space below (dynamic positioning)
 - `v2.0.0` — Architecture split: shared code extracted to `common.js` + `common.css`; launcher `index.html` with Replicon/Contractor choice; separate data files per variant (`data-replicon.json`, `data-contractor.json`); contractor synced to feature parity with replicon (Copy From modal, configurable Jira pattern, keyboard shortcuts, v1.6.1 bug fixes)
+- `v2.1.0` — Invoicing module (contractor only): 5th Invoicing tab; invoice creation from uninvoiced entries with client + date range filter; live totals with tax; invoice persistence to `data-contractor-invoices.json`; invoice list with status badges; invoice detail modal with status management; Void & Unmark entries; Print/PDF via `window.print()`; company settings form (name, address, logo) in Settings tab; read-only invoiced ✓/✗ icon in Day/Week views (replaces checkbox); keyboard shortcut `5` for Invoicing tab
 
 ---
 
@@ -386,6 +482,9 @@ Semantic versioning (major.minor.patch).
 - **Acc Time is a duration** (e.g. `2:45`), not a clock time. Never apply `formatTime()` to it.
 - **`overflow: visible` on `.table-wrap`** — do not change to `hidden`, it breaks autocomplete dropdowns.
 - **`saveEntries()` is async** — all callers must be `async` and use `await saveEntries(...)`.
+- **`saveInvoices()` is async** — same pattern as `saveEntries()`; always await it.
+- **`invoiced` field is write-protected** — only `createInvoice()` and `voidInvoice()` should set it. Never toggle it from the day view or new-row code.
+- **`switchTab()` uses `data-tab` attribute** — contractor's tab buttons must have `data-tab="day|week|replicon|data|invoicing"`. Falls back to index for replicon.html (which has no `data-tab` attrs).
 - **Gap/overlap** is computed from chronological order, not display sort order.
 - **Week definition:** Saturday to Friday (not Mon–Sun).
 
@@ -402,7 +501,7 @@ Semantic versioning (major.minor.patch).
 ### Phase 3
 - Export to CSV (✅ done in Data tab)
 - Replicon-style export per week
-- Print-friendly report
+- Print-friendly report (✅ invoice print/PDF done in v2.1.0)
 
 ### Phase 4
 - Multi-user support (shared `data.json` on network drive, entries tagged by user)
