@@ -27,7 +27,7 @@ window.TT_CONFIG = {
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.1.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.0</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
@@ -228,6 +228,36 @@ window.TT_CONFIG = {
         </div>
       </div>
       <button class="btn btn-primary" onclick="applyCompanySettings()">Save Settings</button>
+    </div>
+
+    <div class="data-section">
+      <h3>Client Details</h3>
+      <p>Billing details shown in the "Bill To" block on printed invoices. Stored locally in your browser.</p>
+      <div class="form-group" style="max-width:320px;margin-top:14px;">
+        <label class="form-label">Client</label>
+        <select class="form-input" id="cd-client">
+          <option value="">— select a client —</option>
+        </select>
+      </div>
+      <div class="inv-form-grid" style="margin-top:12px;" id="cd-fields">
+        <div class="form-group">
+          <label class="form-label">Legal Name</label>
+          <input class="form-input" id="cd-legal-name" placeholder="Full legal entity name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="cd-email" type="email" placeholder="billing@client.com">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Address</label>
+          <input class="form-input" id="cd-address" placeholder="123 Client St, City, Province">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="cd-phone">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveClientDetails()">Save Client</button>
     </div>
   </div>
 
@@ -459,26 +489,61 @@ window.TT_CONFIG = {
 // ══════════════════════════════════════════════
 //  Data layer — server API with localStorage fallback
 // ══════════════════════════════════════════════
-const CLIENTS_KEY = 'timetracker_clients_v1';
+const CLIENTS_API_URL  = 'http://localhost:5000/api/contractor/clients';
+const CLIENTS_V2_KEY = 'timetracker_clients_v2';
 
-// ── Clients / Tasks reference data ──
-function loadClients() {
-  try { return JSON.parse(localStorage.getItem(CLIENTS_KEY) || '{}'); }
-  catch { return {}; }
+let _clients = {}; // { name: { tasks:[], legalName, address, phone, email } }
+
+// ── Clients data layer ──
+function loadClients() { return _clients; }
+
+async function saveClients(obj) {
+  _clients = obj;
+  if (_usingServer) {
+    try {
+      await fetch(CLIENTS_API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj) });
+      return;
+    } catch {}
+  }
+  localStorage.setItem(CLIENTS_V2_KEY, JSON.stringify(obj));
 }
-function saveClients(obj) {
-  localStorage.setItem(CLIENTS_KEY, JSON.stringify(obj));
+
+async function initClients() {
+  if (_usingServer) {
+    try {
+      const res = await fetch(CLIENTS_API_URL);
+      if (res.ok) {
+        const data = await res.json();
+        _clients = (data && typeof data === 'object' && !Array.isArray(data)) ? data : {};
+        await _backfillClientIds();
+        return;
+      }
+    } catch {}
+  }
+  try { _clients = JSON.parse(localStorage.getItem(CLIENTS_V2_KEY) || '{}'); } catch { _clients = {}; }
+  await _backfillClientIds();
 }
+
+async function _backfillClientIds() {
+  let changed = false;
+  Object.values(_clients).forEach(c => {
+    if (!c.id) { c.id = crypto.randomUUID(); changed = true; }
+  });
+  if (changed) await saveClients(_clients);
+}
+
 // Ensure client exists; optionally add a task scoped to that client
-function addClientTask(clientName, taskName) {
+async function addClientTask(clientName, taskName) {
   if (!clientName) return;
   const clients = loadClients();
-  if (!clients[clientName]) clients[clientName] = [];
-  if (taskName && !clients[clientName].includes(taskName)) {
-    clients[clientName].push(taskName);
-    clients[clientName].sort();
+  if (!clients[clientName]) clients[clientName] = { id: crypto.randomUUID(), tasks:[], legalName:'', address:'', phone:'', email:'' };
+  const tasks = clients[clientName].tasks || [];
+  if (taskName && !tasks.includes(taskName)) {
+    tasks.push(taskName);
+    tasks.sort();
+    clients[clientName].tasks = tasks;
   }
-  saveClients(clients);
+  await saveClients(clients);
 }
 
 // One-time migration: rename project→client, subProject→task in entry objects
@@ -500,20 +565,22 @@ function migrateEntries(entries) {
 }
 
 // Seed clients data from existing entries (runs once after loading)
-function seedClientsFromEntries() {
+async function seedClientsFromEntries() {
   const entries = loadEntries();
   const clients = loadClients();
   let changed = false;
   entries.forEach(e => {
     if (!e.client) return;
-    if (!clients[e.client]) { clients[e.client] = []; changed = true; }
-    if (e.task && !clients[e.client].includes(e.task)) {
-      clients[e.client].push(e.task);
-      clients[e.client].sort();
+    if (!clients[e.client]) { clients[e.client] = { tasks:[], legalName:'', address:'', phone:'', email:'' }; changed = true; }
+    const tasks = clients[e.client].tasks || [];
+    if (e.task && !tasks.includes(e.task)) {
+      tasks.push(e.task);
+      tasks.sort();
+      clients[e.client].tasks = tasks;
       changed = true;
     }
   });
-  if (changed) saveClients(clients);
+  if (changed) await saveClients(clients);
 }
 
 async function initData() {
@@ -550,7 +617,6 @@ async function initData() {
     const { entries: migrated } = migrateEntries(raw);
     _entries = migrated;
   }
-  seedClientsFromEntries();
 }
 
 
@@ -632,7 +698,7 @@ function setupTaskAC(inputEl, listEl, clientInputEl) {
   const getValues = (val) => {
     const client = clientInputEl.value.trim();
     if (!client) return [];
-    const tasks = (loadClients()[client] || []).sort();
+    const tasks = ((loadClients()[client] || {}).tasks || []).slice().sort();
     return val
       ? tasks.filter(t => t.toLowerCase().includes(val) && t.toLowerCase() !== val)
       : tasks;
@@ -844,7 +910,7 @@ async function saveNewRow() {
   };
 
   // Auto-register client / task in reference data
-  addClientTask(client, task);
+  await addClientTask(client, task);
 
   const entries = loadEntries();
   entries.push(entry);
@@ -959,7 +1025,7 @@ async function saveModal(cascade = false) {
   }
 
   // Auto-register any new client/task
-  addClientTask(client, task);
+  await addClientTask(client, task);
 
   await saveEntries(entries);
   closeModal();
@@ -1310,6 +1376,63 @@ function applyCompanySettings() {
 }
 
 // ══════════════════════════════════════════════
+//  Client details
+// ══════════════════════════════════════════════
+function getClientDetails(clientName) {
+  const c = loadClients()[clientName] || {};
+  return { legalName: c.legalName||'', address: c.address||'', phone: c.phone||'', email: c.email||'' };
+}
+
+function populateClientSelect() {
+  const sel = document.getElementById('cd-client');
+  if (!sel) return;
+  const current = sel.value;
+  const names = Object.keys(loadClients()).sort();
+  sel.innerHTML = '<option value="">— select a client —</option>' +
+    names.map(n => `<option value="${esc(n)}"${n === current ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  // Wire change handler once (guard against multiple calls)
+  if (!sel._cdWired) {
+    sel.addEventListener('change', populateClientDetails);
+    sel._cdWired = true;
+  }
+  // Sync detail fields to whatever is currently selected
+  populateClientDetails();
+}
+
+function openClientDetailsForClient(clientName) {
+  switchTab('data');
+  const sel = document.getElementById('cd-client');
+  if (sel) {
+    sel.value = clientName;
+    populateClientDetails();
+    sel.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+}
+
+async function saveClientDetails() {
+  const name = document.getElementById('cd-client').value.trim();
+  if (!name) { showToast('Enter a client name first'); return; }
+  const clients = loadClients();
+  if (!clients[name]) clients[name] = { id: crypto.randomUUID(), tasks:[], legalName:'', address:'', phone:'', email:'' };
+  clients[name].legalName = document.getElementById('cd-legal-name').value.trim();
+  clients[name].email     = document.getElementById('cd-email').value.trim();
+  clients[name].address   = document.getElementById('cd-address').value.trim();
+  clients[name].phone     = document.getElementById('cd-phone').value.trim();
+  await saveClients(clients);
+  showToast(`Client "${name}" saved`);
+  renderClientsSettings();
+}
+
+function populateClientDetails() {
+  const name = document.getElementById('cd-client').value.trim();
+  const d = getClientDetails(name);
+  document.getElementById('cd-legal-name').value = d.legalName;
+  document.getElementById('cd-email').value      = d.email;
+  document.getElementById('cd-address').value    = d.address;
+  document.getElementById('cd-phone').value      = d.phone;
+}
+
+// ══════════════════════════════════════════════
 //  Invoicing tab
 // ══════════════════════════════════════════════
 function renderInvoiceTab() {
@@ -1322,8 +1445,8 @@ function renderInvoiceTab() {
   const todayVal = todayStr();
   const cdEl = document.getElementById('inv-created-date');
   const ddEl = document.getElementById('inv-due-date');
-  if (cdEl && !cdEl.value) cdEl.value = todayVal;
-  if (ddEl && !ddEl.value) ddEl.value = addDays(todayVal, 30);
+  if (cdEl) cdEl.value = todayVal;
+  if (ddEl) ddEl.value = addDays(todayVal, 30);
   // Wire client autocomplete
   const clientEl = document.getElementById('inv-client');
   const clientAc = document.getElementById('ac-inv-client');
@@ -1475,7 +1598,7 @@ async function createInvoice() {
 
 function renderInvoiceList() {
   const invoices = [...loadInvoices()]
-    .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
+    .sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true }));
   const body = document.getElementById('inv-list-body');
   if (!body) return;
   if (!invoices.length) {
@@ -1500,7 +1623,10 @@ function renderInvoiceList() {
               <td class="mono">${inv.dueDate || '—'}</td>
               <td class="mono">$${Number(inv.total).toFixed(2)}</td>
               <td><span class="inv-badge inv-badge-${inv.status}">${inv.status}</span></td>
-              <td><button class="btn btn-sm" onclick="openInvoiceDetail('${inv.id}')">View</button></td>
+              <td style="display:flex;gap:6px;">
+                <button class="btn btn-sm" onclick="openInvoiceDetail('${inv.id}')">View</button>
+                <button class="btn btn-sm" onclick="printInvoice('${inv.id}')" title="Print / PDF">🖨</button>
+              </td>
             </tr>`).join('')}
         </tbody>
       </table>
@@ -1610,38 +1736,63 @@ function printInvoice(id) {
   const inv = loadInvoices().find(i => i.id === id);
   if (!inv) return;
   const s = loadCompanySettings();
+  const cd = getClientDetails(inv.client);
   const entries = loadEntries().filter(e => inv.entryIds.includes(e.id))
     .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
 
   const frame = document.getElementById('invoicePrintFrame');
   frame.innerHTML = `
-    <div class="print-header">
-      <div>
-        ${s.logo ? `<img class="print-logo" src="${s.logo}" alt="Logo"><br>` : ''}
-        <div class="print-from" style="margin-top:${s.logo ? '10px' : '0'}">
-          <strong>${esc(s.name || '')}</strong>
-          ${s.address ? `<br>${esc(s.address)}` : ''}
-          ${s.phone   ? `<br>${esc(s.phone)}`   : ''}
-          ${s.email   ? `<br>${esc(s.email)}`   : ''}
-        </div>
+    <!-- Top bar -->
+    <div class="print-topbar">
+      <div class="print-brand">
+        ${s.logo ? `<img class="print-logo" src="${s.logo}" alt="">` : ''}
+        ${s.name ? `<span class="print-company-name">${esc(s.name)}</span>` : ''}
       </div>
       <div class="print-inv-meta">
-        <div class="print-inv-number">Invoice</div>
-        <div class="print-inv-number" style="font-size:1.1rem;margin-top:4px;">${esc(inv.number)}</div>
-        <div style="font-size:0.85rem;margin-top:12px;color:#6b6960;line-height:1.8;">
-          Date: ${inv.createdDate}<br>
-          ${inv.dueDate ? `Due: ${inv.dueDate}<br>` : ''}
-          Status: ${inv.status}
+        <div class="print-inv-label">Invoice</div>
+        <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;">
+          <div class="print-inv-number">${esc(inv.number)}</div>
+          <span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.12em;font-family:'Montserrat',sans-serif;font-weight:600;padding:2px 7px;border-radius:3px;border:1px solid ${inv.status==='paid'?'#16a34a':inv.status==='void'?'#9ca3af':inv.status==='sent'?'#2563eb':'#d97706'};color:${inv.status==='paid'?'#16a34a':inv.status==='void'?'#9ca3af':inv.status==='sent'?'#2563eb':'#d97706'};">${inv.status}</span>
+        </div>
+        <div class="print-inv-dates">
+          <span><strong>Issued</strong> ${inv.createdDate}</span>
+          ${inv.dueDate ? `<span><strong>Due</strong> ${inv.dueDate}</span>` : ''}
         </div>
       </div>
     </div>
-    <div class="print-bill-to">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#9a9890;margin-bottom:4px;">Bill To</div>
-      <strong>${esc(inv.client)}</strong>
+
+    <!-- Address row -->
+    <div class="print-address-row">
+      <div class="print-address-block">
+        <div class="print-address-label">From</div>
+        ${s.name    ? `<div class="print-address-name">${esc(s.name)}</div>` : ''}
+        <div class="print-address-sub">
+          ${s.address ? `${esc(s.address)}<br>` : ''}
+          ${s.phone   ? `${esc(s.phone)}<br>`   : ''}
+          ${s.email   ? `${esc(s.email)}`       : ''}
+        </div>
+      </div>
+      <div class="print-address-block">
+        <div class="print-address-label">Bill To</div>
+        <div class="print-address-name">${esc(cd.legalName || inv.client)}</div>
+        <div class="print-address-sub">
+          ${cd.address ? `${esc(cd.address)}<br>` : ''}
+          ${cd.phone   ? `${esc(cd.phone)}<br>`   : ''}
+          ${cd.email   ? `${esc(cd.email)}`       : ''}
+        </div>
+      </div>
     </div>
+
+    <!-- Line items -->
     <table class="print-table">
       <thead>
-        <tr><th>Date</th><th>Description</th><th style="text-align:right;">Hours</th><th style="text-align:right;">Rate</th><th style="text-align:right;">Amount</th></tr>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th class="right">Hours</th>
+          <th class="right">Rate</th>
+          <th class="right">Amount</th>
+        </tr>
       </thead>
       <tbody>
         ${entries.map(e => {
@@ -1657,8 +1808,10 @@ function printInvoice(id) {
         }).join('')}
       </tbody>
     </table>
-    <div style="overflow:hidden;">
-      <div class="print-totals">
+
+    <!-- Totals -->
+    <div class="print-totals-wrap">
+      <div class="print-totals-inner">
         <table>
           <tr><td>Subtotal</td><td>$${Number(inv.subtotal).toFixed(2)}</td></tr>
           ${inv.taxRate > 0 ? `<tr><td>Tax (${inv.taxRate}%)</td><td>$${Number(inv.taxAmount).toFixed(2)}</td></tr>` : ''}
@@ -1666,10 +1819,13 @@ function printInvoice(id) {
         </table>
       </div>
     </div>
-    ${inv.notes ? `<div class="print-notes">Notes: ${esc(inv.notes)}</div>` : ''}`;
 
+    ${inv.notes ? `<div class="print-notes"><strong>Notes</strong><br>${esc(inv.notes)}</div>` : ''}`;
+
+  const originalTitle = document.title;
+  document.title = `${inv.client} - ${inv.number} - ${inv.createdDate}`;
   window.print();
-  setTimeout(() => { frame.innerHTML = ''; }, 1000);
+  setTimeout(() => { frame.innerHTML = ''; document.title = originalTitle; }, 1000);
 }
 
 function cycleSort(col) {
@@ -1975,69 +2131,82 @@ function renderClientsSettings() {
     return;
   }
 
-  body.innerHTML = names.map((name, ni) => `
+  body.innerHTML = names.map((name, ni) => {
+    const c = clients[name] || {};
+    const tasks = (c.tasks || []).slice().sort();
+    const details = [c.legalName, c.address, c.phone, c.email].filter(Boolean).join(' · ');
+    return `
     <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
       <div style="display:flex;align-items:center;background:var(--surface2);padding:8px 14px;gap:8px;">
-        <strong style="font-family:var(--mono);font-size:0.82rem;flex:1;">${esc(name)}</strong>
+        <div style="flex:1;min-width:0;">
+          <strong style="font-family:var(--mono);font-size:0.82rem;">${esc(name)}</strong>
+          ${details ? `<div style="font-size:0.75rem;color:var(--text-faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(details)}</div>` : ''}
+        </div>
+        <button class="btn btn-sm" data-cs-action="edit-details" data-cs-ci="${ni}">Edit Details</button>
         <button class="btn btn-sm" data-cs-action="add-task" data-cs-ci="${ni}">+ Task</button>
         <button class="btn btn-sm" style="color:#dc2626;border-color:#fca5a5;" data-cs-action="del-client" data-cs-ci="${ni}">✕ Remove</button>
       </div>
       <div style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;min-height:38px;align-items:center;">
-        ${(clients[name] || []).sort().map((task, ti) => `
+        ${tasks.map((task, ti) => `
           <span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:0.75rem;">
             ${esc(task)}
             <button data-cs-action="del-task" data-cs-ci="${ni}" data-cs-ti="${ti}" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:0.72rem;padding:0 1px;line-height:1;" title="Remove task">✕</button>
           </span>
         `).join('') || `<span style="font-size:0.78rem;color:var(--text-faint);">No tasks yet — type in the entry form or click + Task</span>`}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  populateClientSelect();
 
   // Wire up listeners — avoids inline onclick quoting issues with arbitrary client/task names
   body.querySelectorAll('[data-cs-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       const action = btn.dataset.csAction;
       const clientName = names[parseInt(btn.dataset.csCi)];
-      if (action === 'add-task') {
+      if (action === 'edit-details') {
+        openClientDetailsForClient(clientName);
+      } else if (action === 'add-task') {
         addTaskToClient(clientName);
       } else if (action === 'del-client') {
         deleteClient(clientName);
       } else if (action === 'del-task') {
-        const sortedTasks = (clients[clientName] || []).slice().sort();
+        const sortedTasks = ((clients[clientName] || {}).tasks || []).slice().sort();
         deleteTask(clientName, sortedTasks[parseInt(btn.dataset.csTi)]);
       }
     });
   });
 }
 
-function addNewClient() {
+async function addNewClient() {
   const input = document.getElementById('newClientInput');
   const name = input.value.trim();
   if (!name) { input.focus(); return; }
-  addClientTask(name, null);
+  await addClientTask(name, null);
   input.value = '';
   renderClientsSettings();
 }
 
-function addTaskToClient(clientName) {
+async function addTaskToClient(clientName) {
   const task = prompt(`New task for "${clientName}":`);
   if (!task?.trim()) return;
-  addClientTask(clientName, task.trim());
+  await addClientTask(clientName, task.trim());
   renderClientsSettings();
 }
 
-function deleteClient(clientName) {
+async function deleteClient(clientName) {
   if (!confirm(`Remove client "${clientName}" and all their tasks?\n\nExisting time entries are kept — only the reference data is removed.`)) return;
   const clients = loadClients();
   delete clients[clientName];
-  saveClients(clients);
+  await saveClients(clients);
   renderClientsSettings();
 }
 
-function deleteTask(clientName, taskName) {
+async function deleteTask(clientName, taskName) {
   const clients = loadClients();
   if (!clients[clientName]) return;
-  clients[clientName] = clients[clientName].filter(t => t !== taskName);
-  saveClients(clients);
+  clients[clientName].tasks = (clients[clientName].tasks || []).filter(t => t !== taskName);
+  await saveClients(clients);
   renderClientsSettings();
 }
 
@@ -2243,20 +2412,29 @@ function focusNewRowFirstField() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Set up post-recovery hook for contractor-specific logic
-  _onServerRecovery = () => {
+  _onServerRecovery = async () => {
     const { changed } = migrateEntries(_entries);
     if (changed) persistEntries();
-    seedClientsFromEntries();
+    await seedClientsFromEntries();
   };
 
   initTheme();
   syncDatePickers();
   await initData();
+  await initClients();
+  await seedClientsFromEntries();
   await initInvoices();
+  // Clear Client Details form so it doesn't show stale browser-cached values
+  ['cd-legal-name','cd-email','cd-address','cd-phone'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const cdSel = document.getElementById('cd-client');
+  if (cdSel) cdSel.selectedIndex = 0;
   startHeartbeat();
   startClock();
   updateToggleUI();
   renderAll();
+  populateClientSelect();
 });
 
 

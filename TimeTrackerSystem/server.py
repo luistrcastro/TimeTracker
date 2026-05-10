@@ -20,10 +20,10 @@ def ensure_backup_dir():
     os.makedirs(BACKUP_DIR, exist_ok=True)
 
 
-def load_data(filename='data.json'):
+def load_data(filename='data.json', default=None):
     path = os.path.join(_data_dir, filename)
     if not os.path.exists(path):
-        return []
+        return [] if default is None else default
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
@@ -71,6 +71,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_json(load_data('data-contractor.json'))
         elif self.path == '/api/contractor/invoices':
             self.send_json(load_data('data-contractor-invoices.json'))
+        elif self.path == '/api/contractor/clients':
+            self.send_json(load_data('data-contractor-clients.json', default={}))
         else:
             super().do_GET()
 
@@ -83,6 +85,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._handle_post('data-contractor.json')
         elif self.path == '/api/contractor/invoices':
             self._handle_post('data-contractor-invoices.json')
+        elif self.path == '/api/contractor/clients':
+            self._handle_post('data-contractor-clients.json')
         else:
             self.send_error(404)
 

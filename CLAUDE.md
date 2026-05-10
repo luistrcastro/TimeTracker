@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v2.1.0 (contractor.html only)
+**Current version:** v2.2.0 (contractor.html only)
 
 ---
 
@@ -31,6 +31,7 @@ TimeTrackerSystem/
   data-replicon.json             ← Replicon entries (auto-created on first save)
   data-contractor.json           ← Contractor entries (auto-created on first save)
   data-contractor-invoices.json  ← Contractor invoices (auto-created on first invoice save)
+  data-contractor-clients.json   ← Contractor client details (auto-created on first client save)
   CLAUDE.md                      ← This file
 ```
 
@@ -39,12 +40,13 @@ TimeTrackerSystem/
 ### Shared architecture
 Each variant defines `window.TT_CONFIG = { api, storageKey }` **before** loading `common.js`. The common data layer reads `TT_CONFIG.api` for the server endpoint and `TT_CONFIG.storageKey` for the localStorage fallback key.
 
-Contractor's `initData` overrides the common version to also run `migrateEntries` + `seedClientsFromEntries` after loading. It sets `_onServerRecovery` for post-heartbeat-reconnect migration.
+Contractor's `initData` overrides the common version to also run `migrateEntries` after loading. It sets `_onServerRecovery` for post-heartbeat-reconnect migration. `initClients()` and `initInvoices()` are called separately on startup.
 
 ### API routes
 - `/api/replicon/entries` → `data-replicon.json`
 - `/api/contractor/entries` → `data-contractor.json`
 - `/api/contractor/invoices` → `data-contractor-invoices.json`
+- `/api/contractor/clients` → `data-contractor-clients.json`
 - `/api/entries` → `data.json` (legacy backward-compat)
 
 ---
@@ -130,6 +132,25 @@ Stored in `localStorage` key `timetracker_company_settings`:
 ```
 Logo stored as base64 data URL. Edited via the Company & Invoicing Defaults card in the Settings tab.
 
+### Client Details (contractor only)
+Stored server-side in `data-contractor-clients.json` (falls back to `localStorage` key `timetracker_clients_v2`). Keyed by client name:
+```json
+{
+  "ClientName": {
+    "id": "uuid-v4",
+    "tasks": ["Task A", "Task B"],
+    "legalName": "Full Legal Entity Name",
+    "address": "123 Client St, City, Province",
+    "phone": "+1 555-0100",
+    "email": "billing@client.com"
+  }
+}
+```
+- `tasks` — auto-populated from entries via `seedClientsFromEntries()`; also added by `addClientTask()` when a new entry is saved
+- `legalName`, `address`, `phone`, `email` — billing info shown in the "Bill To" block on printed invoices; edited via the Client Details card in the Settings tab
+- `id` — UUID assigned on first creation; back-filled by `_backfillClientIds()` for older records that lack one
+- Edited via the "Client Details" card in the Settings tab: select a client from the dropdown, fill fields, click "Save Client"
+
 ### Key Data Functions
 | Function | Description |
 |---|---|
@@ -141,6 +162,12 @@ Logo stored as base64 data URL. Edited via the Company & Invoicing Defaults card
 | `loadInvoices()` | Returns in-memory `_invoices` array (sync) — contractor only |
 | `saveInvoices(arr)` | Updates `_invoices` and persists to server or localStorage — contractor only |
 | `initInvoices()` | Loads invoices from server on startup — contractor only |
+| `loadClients()` | Returns in-memory `_clients` object (sync) — contractor only |
+| `saveClients(obj)` | Updates `_clients` and persists to server or localStorage — contractor only |
+| `initClients()` | Loads clients from server on startup, falls back to localStorage — contractor only |
+| `addClientTask(clientName, taskName)` | Ensures client exists; adds task if new (async) — contractor only |
+| `seedClientsFromEntries()` | Populates `_clients` from existing entries on startup (async) — contractor only |
+| `_backfillClientIds()` | Adds missing `id` fields to client records and saves if changed — contractor only |
 
 ---
 
@@ -150,7 +177,7 @@ Logo stored as base64 data URL. Edited via the Company & Invoicing Defaults card
 - **Day View** — main entry table for selected date + inline new-entry row
 - **Week View** — Sat–Fri week, grouped by day, read-only (no entry from here)
 - **Replicon** — compiled view: entries grouped by Project+SubProject, hours summed, comments concatenated
-- **Settings** — configuration (Jira pattern), export JSON, export CSV, import JSON, stats; also contains Company & Invoicing Defaults section (contractor only)
+- **Settings** — configuration (Jira pattern), export JSON, export CSV, import JSON, stats; also contains Company & Invoicing Defaults and Client Details sections (contractor only)
 - **Invoicing** — (contractor only) create invoices from uninvoiced entries, view/manage past invoices, print to PDF
 
 ### State Variables
@@ -179,6 +206,9 @@ let JIRA_RE          // RegExp built from _jiraPattern
 | `populateSettingsTab()` | Fills Settings tab inputs (Jira pattern) from current state; also calls `populateCompanySettings()` in contractor |
 | `renderInvoiceTab()` | Pre-fills rate/tax defaults from company settings, wires autocomplete — contractor only |
 | `renderInvoiceList()` | Rebuilds invoice table sorted by date descending — contractor only |
+| `populateClientSelect()` | Populates the client dropdown in the Client Details card from `_clients` — contractor only |
+| `populateClientDetails()` | Fills Client Details form fields from selected client in `_clients` — contractor only |
+| `openClientDetailsForClient(name)` | Switches Client Details card to a named client (called from invoice detail) — contractor only |
 
 **Important:** `renderDayView` always computes acc times on **chronological** order first, then applies display sort. Acc Time always reflects chronological order regardless of sort.
 
@@ -301,19 +331,29 @@ let JIRA_RE          // RegExp built from _jiraPattern
 | `openInvoiceDetail(id)` | Populates and shows invoice modal |
 | `voidInvoice(id)` | Sets status void, unmarks entries, saves both, re-renders |
 | `printInvoice(id)` | Builds print HTML into `#invoicePrintFrame`, calls `window.print()` |
+| `getClientDetails(clientName)` | Returns client object `{ legalName, address, phone, email, … }` from `_clients` — contractor only |
+| `saveClientDetails()` | Reads Client Details form, updates `_clients`, persists — contractor only |
 
 **Amount calculation:** `minutesToDecimal(timeToMinutes(e.duration)) × rate` (rounds to nearest 0.25h)
 
 **Company Settings:**
 - Stored in localStorage key `timetracker_company_settings`
 - Fields: name, email, address, phone, logo (base64), defaultRate, defaultTaxRate
-- Edited via the "Company & Invoicing Defaults" card in the Settings (Data) tab
+- Edited via the "Company & Invoicing Defaults" card in the Settings tab
 - Logo: file input → `FileReader.readAsDataURL()` → preview + stored in settings
 - Applied by `applyCompanySettings()` button; auto-loaded on startup via `populateCompanySettings()`
 
+**Client Details:**
+- Stored server-side via `/api/contractor/clients` → `data-contractor-clients.json`; falls back to localStorage key `timetracker_clients_v2`
+- Edited via the "Client Details" card in the Settings tab: select a client, fill legal name/address/phone/email, click "Save Client"
+- Used by `printInvoice()` to populate the "Bill To" block — falls back gracefully to the raw client name if details are missing
+- `populateClientSelect()` is called by `populateSettingsTab()` to keep the dropdown in sync with `_clients`
+
 **Print to PDF:**
 - `@media print` CSS hides everything except `#invoicePrintFrame`
-- Print frame contains: company logo + name (header), "from" address block, invoice number/date/due, bill-to client, entry table with date/description/hours/rate/amount columns, subtotal/tax/total block, notes
+- Print frame layout: top bar (company logo + name left, invoice number/dates right), address row (From block left, Bill To block right), line items table, totals right-aligned, notes footer
+- "Bill To" block uses `getClientDetails(inv.client)` — shows `legalName` if set, falls back to raw client name; address/phone/email shown if present
+- Font: Montserrat (loaded via Google Fonts import in `common.css`)
 - `window.print()` → browser's native print dialog → "Save as PDF"
 
 
@@ -426,6 +466,9 @@ Current endpoints:
 - `GET/POST /api/replicon/entries` → `data-replicon.json`
 - `GET/POST /api/contractor/entries` → `data-contractor.json`
 - `GET/POST /api/contractor/invoices` → `data-contractor-invoices.json`
+- `GET/POST /api/contractor/clients` → `data-contractor-clients.json`
+
+`load_data(filename, default=None)` accepts an optional `default` argument — returns `[]` when omitted (entries/invoices), or the supplied value (e.g. `{}` for clients). This avoids returning an array when the data file is expected to be an object.
 
 `data.json` path is always relative to `server.py`'s own directory (`os.path.dirname(__file__)`).
 Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If changed, also update `const API` in `index.html`.
@@ -444,6 +487,7 @@ Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If change
 | `timetracker_jira_pattern` | regex string | Jira ticket detection pattern (default `PROJ-\d+`) |
 | `timetracker_contractor_invoices_v1` | JSON array | Fallback invoice storage when server is down (contractor only) |
 | `timetracker_company_settings` | JSON object | Company name/address/phone/email/logo/defaultRate/defaultTaxRate (contractor only) |
+| `timetracker_clients_v2` | JSON object | Fallback client details storage when server is down (contractor only); keyed by client name |
 
 ---
 
@@ -471,6 +515,7 @@ Semantic versioning (major.minor.patch).
 - `v1.7.1` — Autocomplete dropdown flips above the input when there isn't enough space below (dynamic positioning)
 - `v2.0.0` — Architecture split: shared code extracted to `common.js` + `common.css`; launcher `index.html` with Replicon/Contractor choice; separate data files per variant (`data-replicon.json`, `data-contractor.json`); contractor synced to feature parity with replicon (Copy From modal, configurable Jira pattern, keyboard shortcuts, v1.6.1 bug fixes)
 - `v2.1.0` — Invoicing module (contractor only): 5th Invoicing tab; invoice creation from uninvoiced entries with client + date range filter; live totals with tax; invoice persistence to `data-contractor-invoices.json`; invoice list with status badges; invoice detail modal with status management; Void & Unmark entries; Print/PDF via `window.print()`; company settings form (name, address, logo) in Settings tab; read-only invoiced ✓/✗ icon in Day/Week views (replaces checkbox); keyboard shortcut `5` for Invoicing tab
+- `v2.2.0` — Client Details (contractor only): per-client billing info (legal name, address, phone, email) stored in `data-contractor-clients.json` via new `/api/contractor/clients` endpoint; Client Details card in Settings tab; "Bill To" block on printed invoices now populated from client details; invoice print layout redesigned (Montserrat font, two-column address block, cleaner line-items table); client data schema upgraded from `[tasks]` array to `{ id, tasks, legalName, address, phone, email }` object with `_backfillClientIds()` migration; `load_data()` now accepts a `default` parameter
 
 ---
 
@@ -483,7 +528,10 @@ Semantic versioning (major.minor.patch).
 - **`overflow: visible` on `.table-wrap`** — do not change to `hidden`, it breaks autocomplete dropdowns.
 - **`saveEntries()` is async** — all callers must be `async` and use `await saveEntries(...)`.
 - **`saveInvoices()` is async** — same pattern as `saveEntries()`; always await it.
+- **`saveClients()` is async** — same pattern; always await it.
 - **`invoiced` field is write-protected** — only `createInvoice()` and `voidInvoice()` should set it. Never toggle it from the day view or new-row code.
+- **Client data is keyed by name** — `_clients` is a plain object `{ [clientName]: { id, tasks, legalName, … } }`, not an array. Never assume it's an array.
+- **`timetracker_clients_v1`** (old localStorage key) is superseded by `timetracker_clients_v2` due to the schema change from `[tasks]` to `{ tasks, legalName, … }`. Do not read from v1.
 - **`switchTab()` uses `data-tab` attribute** — contractor's tab buttons must have `data-tab="day|week|replicon|data|invoicing"`. Falls back to index for replicon.html (which has no `data-tab` attrs).
 - **Gap/overlap** is computed from chronological order, not display sort order.
 - **Week definition:** Saturday to Friday (not Mon–Sun).

@@ -1,4 +1,4 @@
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Montserrat:wght@400;500;600;700&display=swap');
 
   :root {
     --bg: #f5f4f0;
@@ -872,29 +872,116 @@
 
   /* ── Print layout ── */
   @media print {
+    @page { margin: 1cm; }
     header, .tabs, .topbar, .container > *:not(#invoicePrintFrame),
     .copy-toast, .modal-overlay { display: none !important; }
     #invoicePrintFrame { display: block !important; }
-    body { background: #fff !important; color: #000 !important; }
+    body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
   }
+
+  /* ── Print frame ── */
   #invoicePrintFrame {
     display: none;
-    max-width: 800px; margin: 0 auto; padding: 48px;
-    font-family: var(--sans);
+    max-width: 800px; margin: 0 auto; padding: 0 0 48px;
+    font-family: 'Montserrat', sans-serif;
+    color: #111;
   }
-  .print-header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-  .print-logo { max-height: 80px; max-width: 200px; object-fit: contain; }
-  .print-from { font-size: 0.85rem; line-height: 1.7; }
+
+  /* ── Top bar: brand left · invoice meta right ── */
+  .print-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #c8c8c8;
+    margin-bottom: 28px;
+  }
+  .print-brand { display: flex; align-items: center; gap: 14px; }
+  .print-logo { max-height: 52px; max-width: 140px; object-fit: contain; }
+  .print-company-name {
+    font-size: 1.15rem; font-weight: 700; letter-spacing: 0.01em;
+    color: #111; line-height: 1.2;
+  }
   .print-inv-meta { text-align: right; }
-  .print-inv-number { font-size: 1.6rem; font-weight: 700; font-family: var(--mono); }
-  .print-bill-to { margin-bottom: 32px; }
-  .print-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  .print-table th { background: #f5f4f0; font-size: 0.75rem; padding: 8px 12px; text-align: left; border-bottom: 2px solid #d8d6cc; }
-  .print-table td { padding: 8px 12px; font-size: 0.85rem; border-bottom: 1px solid #e8e6e0; }
-  .print-table td.right { text-align: right; }
-  .print-totals { float: right; width: 260px; margin-top: 8px; }
-  .print-totals table { width: 100%; }
-  .print-totals td { padding: 4px 8px; font-size: 0.85rem; }
-  .print-totals td:last-child { text-align: right; font-family: var(--mono); }
-  .print-total-row td { font-weight: 700; border-top: 2px solid #d8d6cc; padding-top: 8px; }
-  .print-notes { clear: both; margin-top: 48px; font-size: 0.82rem; color: #6b6960; }
+  .print-inv-label {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em;
+    color: #888; font-family: var(--sans, Arial, sans-serif); margin-bottom: 2px;
+  }
+  .print-inv-number {
+    font-size: 1.5rem; font-weight: 700; font-family: var(--mono, monospace);
+    color: #111; line-height: 1.1;
+  }
+  .print-inv-dates {
+    font-size: 0.78rem; color: #555; margin-top: 6px;
+    font-family: var(--sans, Arial, sans-serif); line-height: 1.8;
+  }
+  .print-inv-dates span { display: block; }
+  .print-inv-dates strong { color: #111; }
+
+  /* ── Address row ── */
+  .print-address-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 36px;
+  }
+  .print-address-block {
+    flex: 0 0 50%;
+    width: 50%;
+    padding-right: 24px;
+    box-sizing: border-box;
+  }
+  .print-address-block + .print-address-block {
+    padding-right: 0;
+    padding-left: 24px;
+    border-left: 1px solid #ddd;
+  }
+  .print-address-label {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.14em;
+    color: #999; font-family: var(--sans, Arial, sans-serif);
+    margin-bottom: 8px;
+  }
+  .print-address-name {
+    font-size: 0.95rem; font-weight: 700; color: #111;
+    margin-bottom: 3px; line-height: 1.3;
+  }
+  .print-address-sub {
+    font-size: 0.78rem; color: #444;
+    font-family: var(--sans, Arial, sans-serif); line-height: 1.75;
+  }
+
+  /* ── Line items table ── */
+  .print-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+  .print-table thead tr { border-top: 1px solid #bbb; border-bottom: 1px solid #bbb; }
+  .print-table th {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: #888; font-family: var(--sans, Arial, sans-serif);
+    padding: 7px 10px; text-align: left; font-weight: 600;
+    background: none;
+  }
+  .print-table td { padding: 9px 10px; font-size: 0.84rem; border-bottom: 1px solid #eee; }
+  .print-table td.right { text-align: right; font-family: var(--mono, monospace); }
+  .print-table th.right { text-align: right; }
+  .print-table tbody tr:last-child td { border-bottom: 1px solid #bbb; }
+
+  /* ── Totals ── */
+  .print-totals-wrap {
+    display: flex; justify-content: flex-end; margin-top: 16px; margin-bottom: 0;
+  }
+  .print-totals-inner { width: 240px; }
+  .print-totals-inner table { width: 100%; border-collapse: collapse; }
+  .print-totals-inner td {
+    padding: 5px 10px; font-size: 0.83rem;
+    font-family: var(--sans, Arial, sans-serif);
+  }
+  .print-totals-inner td:last-child { text-align: right; font-family: var(--mono, monospace); }
+  .print-total-row td {
+    font-weight: 700; font-size: 0.95rem;
+    border-top: 1px solid #bbb; padding-top: 9px; color: #111;
+  }
+
+  /* ── Notes ── */
+  .print-notes {
+    margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd;
+    font-size: 0.78rem; color: #666; line-height: 1.7;
+    font-family: var(--sans, Arial, sans-serif);
+  }
