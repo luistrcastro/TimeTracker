@@ -321,12 +321,13 @@ function esc(str) {
 		.replace(/>/g, '&gt;');
 }
 
-function showToast(msg) {
+function showToast(msg, type) {
 	if (_deletedEntry) return;
 	const t = document.getElementById('copyToast');
 	t.textContent = msg;
+	t.classList.toggle('warn', type === 'warn');
 	t.classList.add('show');
-	setTimeout(() => t.classList.remove('show'), 2000);
+	setTimeout(() => { t.classList.remove('show'); t.classList.remove('warn'); }, type === 'warn' ? 4000 : 2000);
 }
 
 function showUndoToast() {
@@ -427,8 +428,6 @@ function renderAll() {
 		renderRepliconView();
 	if (document.getElementById('tab-invoicing')?.style.display !== 'none' && typeof renderInvoiceTab === 'function')
 		renderInvoiceTab();
-	document.getElementById('headerDate').textContent =
-		formatDateHeader(currentDate);
 }
 
 function switchTab(name) {

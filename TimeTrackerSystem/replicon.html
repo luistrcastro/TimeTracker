@@ -27,7 +27,9 @@ window.TT_CONFIG = {
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.0.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.0</span>
+    <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
+    <span style="font-family:var(--mono);font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.06em;text-transform:uppercase;">Replicon</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
@@ -48,7 +50,6 @@ window.TT_CONFIG = {
     </div>
     <button onclick="toggleShortcutsHelp()" title="Keyboard shortcuts (?)" style="background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.45);padding:2px 6px;border-radius:4px;line-height:1;" onmouseover="this.style.color='rgba(255,255,255,0.8)'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">?</button>
     <div id="serverDot" title="Checking server..." style="width:8px;height:8px;border-radius:50%;background:#555;transition:background 0.3s;flex-shrink:0;"></div>
-    <div class="header-date" id="headerDate"></div>
   </div>
 </header>
 
@@ -61,25 +62,32 @@ window.TT_CONFIG = {
       <button class="tab" onclick="switchTab('replicon')">Replicon</button>
       <button class="tab" onclick="switchTab('data')">Settings</button>
     </div>
-    <span style="margin-left:auto;font-family:var(--mono);font-size:0.72rem;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;">Replicon</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+    <div id="repliconModeToggleWrap" style="display:none; align-items:center; gap:6px;">
+      <span style="font-size:0.72rem; color:var(--text-muted); font-family:var(--mono);">FREE</span>
+      <div id="repliconModeToggle" onclick="toggleRepliconMode()" title="Toggle Replicon sub-project mode"
+        style="width:32px;height:18px;border-radius:9px;background:var(--border);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+        <div id="repliconModeKnob" style="position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left 0.2s;"></div>
+      </div>
+      <span style="font-size:0.72rem; color:var(--text-muted); font-family:var(--mono);">PROJ</span>
+    </div>
+    <button class="btn" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
+  </div>
   </div>
 
   <!-- ══ DAY VIEW TAB ══ -->
   <div id="tab-day">
-    <!-- Top bar -->
-    <div class="topbar">
+    <!-- Date nav + summary inline -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <div class="date-nav">
         <button onclick="changeDate(-1)" title="Previous day">‹</button>
         <input type="date" id="datePicker" onchange="onDateChange()">
         <button onclick="changeDate(1)" title="Next day">›</button>
         <button class="today-btn" onclick="goToday()">today</button>
       </div>
-      <div class="spacer"></div>
-      <button class="btn" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
+      <div style="flex:1;"></div>
+      <div class="day-summary" id="daySummary" style="margin-bottom:0;"></div>
     </div>
-
-    <!-- Summary chips -->
-    <div class="day-summary" id="daySummary"></div>
 
     <!-- Table -->
     <div class="table-wrap">
@@ -90,7 +98,6 @@ window.TT_CONFIG = {
             <th class="sortable" onclick="cycleSort('subProject')">Sub Project <span class="sort-indicator" id="sort-subProject"></span></th>
             <th>Description</th>
             <th>Sub-Description</th>
-            <th>Further Info</th>
             <th class="sortable" onclick="cycleSort('start')">Start <span class="sort-indicator" id="sort-start"></span></th>
             <th>Finish</th>
             <th>Time</th>
@@ -129,6 +136,7 @@ window.TT_CONFIG = {
         <button class="today-btn" onclick="goToday()">today</button>
       </div>
       <div class="spacer"></div>
+      <button id="submitRepliconBtn" class="btn btn-primary" onclick="submitToReplicon()">⬆ Submit to Replicon</button>
       <button class="btn" onclick="copyAll()">⎘ Copy All</button>
     </div>
 
@@ -164,6 +172,65 @@ window.TT_CONFIG = {
       <p style="margin-top:10px; margin-bottom:0;">Entries whose description matches this pattern are treated as Jira tickets (amber highlight, logged checkbox).</p>
     </div>
     <div class="data-section">
+      <h3>Replicon API</h3>
+
+      <!-- ── Credentials ── -->
+      <div style="margin-top:4px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:0.8rem;">
+        <div style="font-weight:600; margin-bottom:8px;">Credentials</div>
+        <p style="margin:0 0 8px; color:var(--text-muted); line-height:1.5;">Enter values manually from DevTools (F12 → Network → any <strong>QueueRequests</strong> call), or use the console script below to capture them automatically. <strong>Credentials expire every few minutes</strong> — recapture them before each Replicon session and hit <strong>↻ Refresh</strong> to check the current status.</p>
+        <div style="display:grid; grid-template-columns:auto 1fr; gap:8px 12px; align-items:center; max-width:520px;">
+          <label style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap;">Base URL</label>
+          <input id="repliconBaseUrl" class="form-input mono" style="font-size:0.82rem;" placeholder="https://na9.replicon.com">
+          <label style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap;">Cookie</label>
+          <input id="repliconCookieHeader" class="form-input mono" style="font-size:0.82rem;" placeholder="Request Headers → cookie: …">
+          <label style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap;">serverViewStateId</label>
+          <input id="repliconSVSId" class="form-input mono" style="font-size:0.82rem;" placeholder="Request Payload → serverViewStateId">
+          <label style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap;">sessionId</label>
+          <input id="repliconSessionId" class="form-input mono" style="font-size:0.82rem;" placeholder="Request Payload → sessionId">
+          <label style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap;">Request index</label>
+          <input id="repliconRequestIndex" class="form-input mono" style="font-size:0.82rem;" type="number" min="0" placeholder="requests[N].requestIndex from payload">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <button class="btn btn-primary" onclick="saveRepliconCredentials()">Save</button>
+          <button class="btn" onclick="initRepliconCard()" title="Re-fetch stored credentials from server">↻ Refresh</button>
+        </div>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+          <div style="font-weight:600; margin-bottom:4px; font-size:0.78rem;">Capture Credentials automatically</div>
+          <p style="margin:0 0 6px; color:var(--text-muted); line-height:1.5;">On your Replicon timesheet: press <strong>F12 → Console</strong>, paste this script, press <strong>Enter</strong>, then click any cell. Hit <strong>↻ Refresh</strong> after.</p>
+          <button class="btn" style="font-size:0.75rem;" onclick="copyScript('credScript')">⎘ Copy script</button>
+          <textarea id="credScript" readonly style="display:none;"></textarea>
+        </div>
+      </div>
+
+      <!-- ── Row Map ── -->
+      <div style="margin-top:10px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:0.8rem;">
+        <div style="font-weight:600; margin-bottom:4px;">Row Map <span id="repliconRowMapStatus" style="font-weight:400; color:var(--text-muted); font-family:var(--mono);"></span></div>
+        <p style="margin:0 0 8px; color:var(--text-muted); line-height:1.5;"><strong>Start here after capturing credentials.</strong> Drag this bookmarklet to your bookmarks bar, then click it while your Replicon timesheet is open. It maps row positions <em>and</em> syncs the projects and tasks visible in your timesheet — no separate Sync needed. Re-run whenever you add new project rows.</p>
+        <a href="javascript:(function(){var rows=[];document.querySelectorAll('tr[rowid]').forEach(function(tr){var rowId=tr.getAttribute('rowid');var a=tr.querySelector('a[projectvalue][taskvalue]');if(!a)return;var pId=a.getAttribute('projectvalue');var tId=a.getAttribute('taskvalue');if(!pId||!tId)return;var pName=((a.querySelector('.projectPartName')||{}).textContent||'').trim();var tEl=a.querySelector('.taskPartName .selected')||a.querySelector('.taskPartName');var tName=((tEl||{}).textContent||'').trim();rows.push({rowId:rowId,projectId:pId,taskId:tId,projectName:pName,taskName:tName});});if(!rows.length){alert('No rows found. Make sure you are on the Replicon timesheet page.');return;}fetch('http://localhost:5000/api/replicon/row-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:rows})}).then(function(r){return r.json();}).then(function(d){alert('Synced '+d.projects+' projects, mapped '+d.count+' rows!');}).catch(function(e){alert('Error: '+e.message);});})();" class="btn" style="font-size:0.78rem; text-decoration:none; display:inline-block;">📋 Map Replicon Rows</a>
+      </div>
+
+      <!-- ── Projects & Tasks ── -->
+      <div style="margin-top:10px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:0.8rem;">
+        <div style="font-weight:600; margin-bottom:4px;">Projects &amp; Tasks <span id="repliconCacheStatus" style="font-weight:400; color:var(--text-muted); font-family:var(--mono); font-size:0.75rem;"></span></div>
+        <p style="margin:0 0 8px; color:var(--text-muted); line-height:1.5;">Optional — fetches the <em>full</em> list of available projects and tasks via the API, including ones not yet in your timesheet. Requires credentials with a valid cookie. The Row Map bookmarklet already covers projects and tasks currently in your timesheet, so this is only needed if you want the complete list in PROJ mode selects.</p>
+        <button id="syncRepliconBtn" class="btn" onclick="syncRepliconProjects()">↻ Sync Projects &amp; Tasks</button>
+      </div>
+
+      <!-- ── Project Browser ── -->
+      <div id="repliconProjectBrowser" style="display:none; margin-top:10px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--border); border-radius:6px; overflow:hidden; font-size:0.78rem; font-family:var(--mono);">
+          <div style="border-right:1px solid var(--border);">
+            <div style="padding:5px 10px; background:var(--surface2); color:var(--text-muted); font-weight:600; border-bottom:1px solid var(--border);">Projects</div>
+            <div id="rpbProjectList" style="max-height:200px; overflow-y:auto;"></div>
+          </div>
+          <div>
+            <div style="padding:5px 10px; background:var(--surface2); color:var(--text-muted); font-weight:600; border-bottom:1px solid var(--border);">Sub-projects</div>
+            <div id="rpbTaskList" style="max-height:200px; overflow-y:auto; color:var(--text-muted); padding:6px 10px;">Select a project</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="data-section">
       <h3>Export Data</h3>
       <p>Download all your entries as a JSON file for backup or transfer.</p>
       <button class="btn" onclick="exportData()">⬇ Export JSON</button>
@@ -188,11 +255,11 @@ window.TT_CONFIG = {
   <div class="modal">
     <div class="modal-title">Edit Entry</div>
     <div class="modal-grid">
-      <div class="form-group">
+      <div class="form-group" id="mProjectWrap">
         <label class="form-label">Project</label>
         <input class="form-input" id="mProject">
       </div>
-      <div class="form-group">
+      <div class="form-group" id="mSubProjectWrap">
         <label class="form-label">Sub Project</label>
         <input class="form-input" id="mSubProject">
       </div>
@@ -203,10 +270,6 @@ window.TT_CONFIG = {
       <div class="form-group modal-full">
         <label class="form-label">Sub-Description</label>
         <input class="form-input" id="mSubDescription">
-      </div>
-      <div class="form-group modal-full">
-        <label class="form-label">Further Information</label>
-        <input class="form-input" id="mFurtherInfo">
       </div>
       <div class="form-group">
         <label class="form-label">Start</label>
@@ -374,7 +437,7 @@ function renderCopyFromList() {
   }
 
   list.innerHTML = entries.map(e => {
-    const proj = [e.project, e.subProject].filter(Boolean).join(' · ');
+    const proj = [projDisplayName(e.project), e.subProject].filter(Boolean).join(' · ');
     const desc = [e.description, e.subDescription].filter(Boolean).join(' — ');
     return `
       <label class="copy-from-item">
@@ -421,7 +484,6 @@ async function executeCopyFrom() {
     subProject:     e.subProject,
     description:    e.description,
     subDescription: e.subDescription,
-    furtherInfo:    e.furtherInfo,
     start:          '',
     finish:         '',
     duration:       '0:00',
@@ -490,15 +552,59 @@ function applyJiraPattern() {
 function populateSettingsTab() {
   const input = document.getElementById('jiraPatternInput');
   if (input) input.value = _jiraPattern;
+  initRepliconCard();
 }
 
 // ══════════════════════════════════════════════
 //  Autocomplete helpers
 // ══════════════════════════════════════════════
+let _repliconCache = null;
+let _repliconMode  = localStorage.getItem('timetracker_replicon_mode') === 'true';
+let _repliconCredsOk = false; // true only when all 4 credential fields are present
+
+function toggleRepliconMode() {
+  _repliconMode = !_repliconMode;
+  localStorage.setItem('timetracker_replicon_mode', _repliconMode);
+  applyRepliconModeUI();
+  renderDayView();
+}
+
+function applyRepliconModeUI() {
+  const knob  = document.getElementById('repliconModeKnob');
+  const track = document.getElementById('repliconModeToggle');
+  if (!knob) return;
+  if (_repliconMode) {
+    knob.style.left = '17px';
+    track.style.background = 'var(--accent-interactive, #5b6af5)';
+  } else {
+    knob.style.left = '3px';
+    track.style.background = 'var(--border)';
+  }
+}
+
 function getUniqueValues(field) {
   const map = { project: 'project', subproject: 'subProject' };
   const key = map[field];
-  return [...new Set(loadEntries().map(e => e[key]).filter(Boolean))].sort();
+  const history = loadEntries().map(e => e[key]).filter(Boolean);
+
+  if (field === 'project' && _repliconCache?.projects?.length) {
+    const codes = _repliconCache.projects.map(p => p.code).filter(Boolean);
+    return [...new Set([...codes, ...history])].sort();
+  }
+
+  if (field === 'subproject' && _repliconCache?.projects?.length) {
+    const projectVal = document.getElementById('nr-project')?.value?.trim();
+    const proj = projectVal && _repliconCache.projects.find(p => p.code === projectVal);
+    if (proj?.tasks?.length) {
+      const taskNames = proj.tasks.map(t => t.name).filter(Boolean);
+      // Replicon mode: only show synced task names; Free mode: merge with history
+      return _repliconMode
+        ? taskNames.sort()
+        : [...new Set([...taskNames, ...history])].sort();
+    }
+  }
+
+  return [...new Set(history)].sort();
 }
 
 function setupAC(inputEl, field, listEl) {
@@ -563,6 +669,156 @@ function setupAC(inputEl, field, listEl) {
 }
 
 // ══════════════════════════════════════════════
+//  PROJ mode helpers
+// ══════════════════════════════════════════════
+function projDisplayName(val) {
+  if (!val || !_repliconCache?.projects) return val || '';
+  const p = _repliconCache.projects.find(p => p.id === val);
+  return p ? p.code : val;
+}
+
+function buildProjectOptions() {
+  const sorted = [..._repliconCache.projects].sort((a, b) => a.code.localeCompare(b.code));
+  return sorted.map(p => {
+    const parts = p.name.split(' - ');
+    const shortName = parts.length > 1 ? parts[1].trim() : p.name;
+    return `<option value="${esc(p.id)}">${esc(p.code)} — ${esc(shortName)}</option>`;
+  }).join('');
+}
+
+function getProjectTasks(projectId, filter) {
+  const proj = _repliconCache?.projects?.find(p => p.id === projectId);
+  if (!proj?.tasks?.length) return [];
+  if (!filter) return proj.tasks;
+  const q = filter.toLowerCase();
+  return proj.tasks.filter(t => taskLabel(t).toLowerCase().includes(q));
+}
+
+function taskLabel(t) {
+  return (t.path || [t.name]).join(' › ');
+}
+
+function makeSubProjectCombobox(hiddenId, displayId) {
+  const td = document.createElement('td');
+  td.style.cssText = 'padding:2px 4px;';
+  const hidden = document.createElement('input');
+  hidden.type = 'hidden';
+  hidden.id = hiddenId;
+  const wrap = document.createElement('div');
+  wrap.className = 'ac-wrap autocomplete-wrap';
+  const inp = document.createElement('input');
+  inp.className = 'cell-input';
+  inp.id = displayId;
+  inp.type = 'text';
+  inp.placeholder = '— select task —';
+  inp.autocomplete = 'off';
+  const list = document.createElement('div');
+  list.className = 'autocomplete-list';
+  list.id = 'spac-' + displayId;
+  wrap.append(inp, list);
+  td.append(hidden, wrap);
+  return td;
+}
+
+function setupSubProjectCombobox(displayId, hiddenId, getProjectId) {
+  const inp = document.getElementById(displayId);
+  const listEl = document.getElementById('spac-' + displayId);
+  if (!inp || !listEl) return;
+  let acIndex = -1;
+
+  function getItems() { return listEl.querySelectorAll('.autocomplete-item'); }
+
+  function setActive(i) {
+    const items = getItems();
+    items.forEach(el => el.classList.remove('active'));
+    acIndex = Math.max(-1, Math.min(i, items.length - 1));
+    if (acIndex >= 0) items[acIndex].classList.add('active');
+  }
+
+  function positionList() {
+    const rect = inp.getBoundingClientRect();
+    if (window.innerHeight - rect.bottom < 168) listEl.classList.add('above');
+    else listEl.classList.remove('above');
+  }
+
+  function selectTask(t) {
+    document.getElementById(hiddenId).value = t.name;
+    inp.value = taskLabel(t);
+    listEl.classList.remove('show');
+    acIndex = -1;
+  }
+
+  function buildList(filter) {
+    const projectId = getProjectId();
+    if (!projectId) { listEl.classList.remove('show'); return; }
+    const tasks = getProjectTasks(projectId, filter);
+    if (!tasks.length) {
+      listEl.innerHTML = `<div class="autocomplete-item" style="opacity:0.5;pointer-events:none">${filter ? '— no matches —' : '— no tasks —'}</div>`;
+      positionList(); listEl.classList.add('show'); return;
+    }
+    listEl.innerHTML = tasks.map(t => `<div class="autocomplete-item">${esc(taskLabel(t))}</div>`).join('');
+    getItems().forEach((item, i) => {
+      item.addEventListener('mousedown', e => { e.preventDefault(); selectTask(tasks[i]); });
+    });
+    positionList();
+    listEl.classList.add('show');
+  }
+
+  inp.addEventListener('focus', () => { acIndex = -1; buildList(inp.value); });
+  inp.addEventListener('input', () => { acIndex = -1; buildList(inp.value); });
+
+  inp.addEventListener('keydown', e => {
+    if (!listEl.classList.contains('show')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(acIndex + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(acIndex - 1); }
+    else if (e.key === 'Enter' && acIndex >= 0) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const projectId = getProjectId();
+      const tasks = getProjectTasks(projectId, inp.value);
+      if (tasks[acIndex]) selectTask(tasks[acIndex]);
+      listEl.classList.remove('show');
+      acIndex = -1;
+    } else if (e.key === 'Escape') {
+      listEl.classList.remove('show');
+      acIndex = -1;
+    }
+  });
+
+  inp.addEventListener('blur', () => setTimeout(() => { listEl.classList.remove('show'); acIndex = -1; }, 150));
+}
+
+function setSubProjectComboboxValue(taskName, displayId, hiddenId, projectId) {
+  const hiddenEl = document.getElementById(hiddenId);
+  const displayEl = document.getElementById(displayId);
+  if (hiddenEl) hiddenEl.value = taskName || '';
+  if (!displayEl) return;
+  if (!taskName) { displayEl.value = ''; return; }
+  const proj = _repliconCache?.projects?.find(p => p.id === projectId);
+  const task = proj?.tasks?.find(t => t.name === taskName);
+  displayEl.value = task ? taskLabel(task) : taskName;
+}
+
+function makeSelectCell(id, optionsHTML) {
+  const td = document.createElement('td');
+  const sel = document.createElement('select');
+  sel.className = 'cell-input';
+  sel.id = id;
+  sel.innerHTML = optionsHTML;
+  td.appendChild(sel);
+  return td;
+}
+
+function refreshSubProjectOptions() {
+  const hiddenEl  = document.getElementById('nr-subproject');
+  const displayEl = document.getElementById('nr-subproject-display');
+  const listEl    = document.getElementById('spac-nr-subproject-display');
+  if (hiddenEl)  hiddenEl.value = '';
+  if (displayEl) displayEl.value = '';
+  if (listEl)    listEl.classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
 //  Inline new-entry row
 // ══════════════════════════════════════════════
 function buildNewRow(prefillStart) {
@@ -570,16 +826,20 @@ function buildNewRow(prefillStart) {
   tr.className = 'new-row';
   tr.id = 'new-entry-row';
 
-  // project
-  const tdProject = makeCellWithAC('nr-project', 'text', 'e.g. 1234', false, 'project');
-  // subproject
-  const tdSub = makeCellWithAC('nr-subproject', 'text', 'General', false, 'subproject');
+  // project / subproject — selects in PROJ mode, text+AC in FREE mode
+  let tdProject, tdSub;
+  const useSelects = _repliconMode && _repliconCache?.projects?.length;
+  if (useSelects) {
+    tdProject = makeSelectCell('nr-project', '<option value="">— project —</option>' + buildProjectOptions());
+    tdSub     = makeSubProjectCombobox('nr-subproject', 'nr-subproject-display');
+  } else {
+    tdProject = makeCellWithAC('nr-project', 'text', 'e.g. 1234', false, 'project');
+    tdSub     = makeCellWithAC('nr-subproject', 'text', 'General', false, 'subproject');
+  }
   // description
   const tdDesc = makeCell('nr-description', 'text', 'Description / PROJ-100', false);
   // sub-description
   const tdSubDesc = makeCell('nr-subdesc', 'text', 'Sub-description', false);
-  // further info
-  const tdInfo = makeCell('nr-info', 'text', 'Further info', false);
   // start
   const tdStart = makeCell('nr-start', 'time', '', false, true);
   // finish
@@ -600,7 +860,15 @@ function buildNewRow(prefillStart) {
       <button class="btn btn-sm" onclick="clearNewRow()" title="Clear fields">Clear</button>
     </div>`;
 
-  tr.append(tdProject, tdSub, tdDesc, tdSubDesc, tdInfo, tdStart, tdFinish, tdDur, tdAcc, tdLogged, tdActions);
+  tr.append(tdProject, tdSub, tdDesc, tdSubDesc, tdStart, tdFinish, tdDur, tdAcc, tdLogged, tdActions);
+
+  // PROJ mode: clear combobox when project changes; wire up combobox interaction
+  if (useSelects) {
+    tr.querySelector('#nr-project')?.addEventListener('change', refreshSubProjectOptions);
+    requestAnimationFrame(() => {
+      setupSubProjectCombobox('nr-subproject-display', 'nr-subproject', () => document.getElementById('nr-project')?.value);
+    });
+  }
 
   // prefill start
   if (prefillStart) tr.querySelector('#nr-start').value = prefillStart;
@@ -616,7 +884,10 @@ function buildNewRow(prefillStart) {
   });
 
   // Enter on any text field → move to next field
-  ['nr-project','nr-subproject','nr-description','nr-subdesc','nr-info'].forEach((id, i, arr) => {
+  const navFields = useSelects
+    ? ['nr-project', 'nr-subproject-display', 'nr-description', 'nr-subdesc']
+    : ['nr-project', 'nr-subproject', 'nr-description', 'nr-subdesc'];
+  navFields.forEach((id, i, arr) => {
     const el = tr.querySelector('#' + id);
     if (!el) return;
     el.addEventListener('keydown', e => {
@@ -716,7 +987,6 @@ async function saveNewRow() {
     subProject:     document.getElementById('nr-subproject')?.value.trim() || '',
     description,
     subDescription: document.getElementById('nr-subdesc')?.value.trim() || '',
-    furtherInfo:    document.getElementById('nr-info')?.value.trim() || '',
     start, finish,
     duration: minutesToHHMM(durMins),
     logged: document.getElementById('nr-logged')?.checked || false,
@@ -731,7 +1001,7 @@ async function saveNewRow() {
 }
 
 function clearNewRow() {
-  ['nr-project','nr-subproject','nr-description','nr-subdesc','nr-info','nr-duration','nr-acc'].forEach(id => {
+  ['nr-project','nr-subproject','nr-subproject-display','nr-description','nr-subdesc','nr-duration','nr-acc'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -753,15 +1023,46 @@ let editingId = null;
 
 let _originalFinish = null; // stored when modal opens, used for cascade delta
 
+function buildModalProjectControls(projectVal, subProjectVal) {
+  const projWrap = document.getElementById('mProjectWrap');
+  const subWrap  = document.getElementById('mSubProjectWrap');
+  if (!projWrap || !subWrap) return;
+
+  const useSelects = _repliconMode && _repliconCache?.projects?.length;
+  if (useSelects) {
+    projWrap.innerHTML = `<label class="form-label">Project</label>
+      <select class="form-input" id="mProject">
+        <option value="">— project —</option>${buildProjectOptions()}
+      </select>`;
+    const projSel = document.getElementById('mProject');
+    projSel.value = projectVal || '';
+    // build sub-project combobox for this project
+    subWrap.innerHTML = `<label class="form-label">Sub Project</label>
+      <input type="hidden" id="mSubProject">
+      <div class="ac-wrap autocomplete-wrap">
+        <input class="form-input" id="mSubProjectDisplay" type="text" autocomplete="off" placeholder="— type to filter —">
+        <div class="autocomplete-list" id="spac-mSubProjectDisplay"></div>
+      </div>`;
+    setupSubProjectCombobox('mSubProjectDisplay', 'mSubProject', () => document.getElementById('mProject')?.value);
+    setSubProjectComboboxValue(subProjectVal || '', 'mSubProjectDisplay', 'mSubProject', projSel.value);
+    projSel.addEventListener('change', () => {
+      setSubProjectComboboxValue('', 'mSubProjectDisplay', 'mSubProject', projSel.value);
+    });
+  } else {
+    projWrap.innerHTML = `<label class="form-label">Project</label>
+      <input class="form-input" id="mProject" value="${esc(projectVal || '')}">`;
+    subWrap.innerHTML = `<label class="form-label">Sub Project</label>
+      <input class="form-input" id="mSubProject" value="${esc(subProjectVal || '')}">`;
+  }
+}
+
 function openEdit(id) {
   const e = loadEntries().find(x => x.id === id);
   if (!e) return;
   editingId = id;
-  document.getElementById('mProject').value        = e.project || '';
-  document.getElementById('mSubProject').value     = e.subProject || '';
+  buildModalProjectControls(e.project || '', e.subProject || '');
   document.getElementById('mDescription').value    = e.description || '';
   document.getElementById('mSubDescription').value = e.subDescription || '';
-  document.getElementById('mFurtherInfo').value    = e.furtherInfo || '';
   document.getElementById('mStart').value          = e.start || '';
   document.getElementById('mFinish').value         = e.finish || '';
   _originalFinish = e.finish || '';
@@ -828,7 +1129,6 @@ async function saveModal(cascade = false) {
     subProject:     document.getElementById('mSubProject').value.trim(),
     description,
     subDescription: document.getElementById('mSubDescription').value.trim(),
-    furtherInfo:    document.getElementById('mFurtherInfo').value.trim(),
     start, finish,
     duration: minutesToHHMM(durMins),
   };
@@ -880,11 +1180,15 @@ function duplicateEntry(id) {
   renderDayView(lastFinish);
 
   // Fill in the new row fields from the source entry (except start/finish)
-  document.getElementById('nr-project').value      = e.project || '';
-  document.getElementById('nr-subproject').value   = e.subProject || '';
+  document.getElementById('nr-project').value = e.project || '';
+  refreshSubProjectOptions();
+  if (_repliconMode && _repliconCache?.projects?.length) {
+    setSubProjectComboboxValue(e.subProject || '', 'nr-subproject-display', 'nr-subproject', e.project || '');
+  } else {
+    document.getElementById('nr-subproject').value = e.subProject || '';
+  }
   document.getElementById('nr-description').value  = e.description || '';
   document.getElementById('nr-subdesc').value      = e.subDescription || '';
-  document.getElementById('nr-info').value         = e.furtherInfo || '';
   // start is already prefilled with lastFinish, finish stays empty
   document.getElementById('nr-finish').value = '';
   document.getElementById('nr-duration').value = '';
@@ -961,7 +1265,6 @@ function renderDayView(newRowPrefillStart) {
     .filter(e => e.date >= weekStart && e.date <= addDays(weekStart, 6))
     .reduce((sum, e) => sum + timeToMinutes(e.duration || '0:00'), 0);
   const chips = [
-    `<div class="summary-chip"><strong>${formatDateHeader(currentDate)}</strong></div>`,
     `<div class="summary-chip">Day: <strong>${minutesToHHMM(accMins)}</strong> &nbsp;(${minutesToDecimal(accMins)} h)</div>`,
     `<div class="summary-chip">Week: <strong>${minutesToHHMM(weekMins)}</strong> &nbsp;(${minutesToDecimal(weekMins)} h)</div>`,
     `<div class="summary-chip">Entries: <strong>${entries.length}</strong></div>`,
@@ -1000,11 +1303,10 @@ function renderDayView(newRowPrefillStart) {
     const tr = document.createElement('tr');
     if (rowClass) tr.className = rowClass;
     tr.innerHTML = `
-      <td>${esc(e.project)}</td>
+      <td>${esc(projDisplayName(e.project))}</td>
       <td>${esc(e.subProject)}</td>
       <td>${esc(e.description)}${jiraBadge}${overlapBadge}</td>
       <td class="muted">${esc(e.subDescription)}</td>
-      <td class="muted">${esc(e.furtherInfo)}</td>
       <td class="mono">${formatTime(e.start)}</td>
       <td class="mono">${formatTime(e.finish)}</td>
       <td class="mono">${e.duration}</td>
@@ -1086,15 +1388,21 @@ function renderRepliconView() {
     return;
   }
 
-  body.innerHTML = rows.map((r, i) => `
+  body.innerHTML = rows.map((r, i) => {
+    const mapped = isRowMapped(r);
+    const statusHtml = mapped ? '' :
+      `<span class="replicon-status warn" title="Project or task not in cache — run Sync in Settings">⚠</span>`;
+    return `
     <div class="replicon-row">
-      <div class="replicon-cell"><strong>${esc(r.project)}</strong>&nbsp;${esc(r.subProject)}</div>
+      <div class="replicon-cell"><strong>${esc(projDisplayName(r.project))}</strong>&nbsp;${esc(r.subProject)}</div>
       <div class="replicon-cell hours">${r.hours}</div>
       <div class="replicon-cell comments">${esc(r.comments)}</div>
       <div class="replicon-cell copy-cell">
         <button class="btn btn-sm" onclick="copyRow(${i})">⎘</button>
+        <span id="rs-${i}">${statusHtml}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   window._repliconRows = rows;
 }
@@ -1107,14 +1415,246 @@ function copyRow(i) {
 function copyAll() {
   const rows = window._repliconRows || [];
   if (!rows.length) return;
-  const text = rows.map(r => `${r.project} ${r.subProject}\t${r.hours}\t${r.comments}`).join('\n');
+  const text = rows.map(r => `${projDisplayName(r.project)} ${r.subProject}\t${r.hours}\t${r.comments}`).join('\n');
   navigator.clipboard.writeText(text).then(() => showToast('All rows copied!'));
+}
+
+// ══════════════════════════════════════════════
+//  Replicon API — cache + credentials + sync + submit
+// ══════════════════════════════════════════════
+
+function isRowMapped(row) {
+  if (!_repliconCache?.projects?.length) return true;
+  const proj = _repliconCache.projects.find(p => p.code === row.project || p.id === row.project);
+  if (!proj) return false;
+  if (!proj.tasks?.length) return true;
+  return proj.tasks.some(t => t.name === row.subProject);
+}
+
+async function loadRepliconCache() {
+  try {
+    const resp = await fetch('/api/replicon/cache');
+    _repliconCache = await resp.json();
+  } catch (_) {
+    _repliconCache = { projects: [] };
+  }
+  // Show the FREE/PROJ toggle only when a cache is available
+  const wrap = document.getElementById('repliconModeToggleWrap');
+  if (wrap) wrap.style.display = _repliconCache?.projects?.length ? 'flex' : 'none';
+  applyRepliconModeUI();
+  renderRepliconProjectBrowser();
+}
+
+async function initRepliconCard() {
+  // Wire up bookmarklet href
+  const credScript = document.getElementById('credScript');
+  if (credScript) credScript.value = `(function(){if(window._rplCapture){console.log('Already listening.');return;}window._rplCapture=true;var oO=XMLHttpRequest.prototype.open,oS=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){this._u=u;return oO.apply(this,arguments);};XMLHttpRequest.prototype.send=function(b){if(this._u&&this._u.indexOf('QueueRequests')!==-1&&b){try{var d=JSON.parse(b);var sId=d.sessionId;var svId=d.serverViewStateId;if(sId&&svId){var base=(this._u.match(/(https?:\\/\\/[^\\/]+)/)||[])[1]||window.location.origin;var ck=document.cookie;var maxIdx=Math.max.apply(null,(d.requests||[]).map(function(r){return r.requestIndex||0;}));XMLHttpRequest.prototype.open=oO;XMLHttpRequest.prototype.send=oS;window._rplCapture=false;fetch('http://localhost:5000/api/replicon/credentials',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base_url:base,cookie_header:ck,server_view_state_id:svId,session_id:sId,last_request_index:maxIdx})}).then(function(r){return r.json();}).then(function(){console.log('Saved! session='+sId.slice(0,8)+'... idx='+maxIdx);}).catch(function(e){console.error('POST failed:',e.message);});return;}}catch(e){console.error(e);}}return oS.apply(this,arguments);};console.log('Listening — click any cell in Replicon...');})();`;
+
+  const rowScript = document.getElementById('rowScript');
+  // Load row-map status
+  try {
+    const rmResp = await fetch('/api/replicon/row-map');
+    const rmData = await rmResp.json();
+    const rmEl = document.getElementById('repliconRowMapStatus');
+    if (rmEl) {
+      const count = Object.keys(rmData).length;
+      rmEl.textContent = count ? `— ${count} row${count > 1 ? 's' : ''} mapped` : '— not mapped yet';
+    }
+  } catch (_) {}
+
+  await refreshRepliconCreds();
+  updateRepliconCacheStatus();
+}
+
+async function refreshRepliconCreds() {
+  try {
+    const resp = await fetch('/api/replicon/credentials');
+    const data = await resp.json();
+    if (data.configured) {
+      const fields = { repliconBaseUrl: data.base_url, repliconSVSId: data.server_view_state_id, repliconSessionId: data.session_id };
+      Object.entries(fields).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el && val) el.value = val;
+      });
+      const idxEl = document.getElementById('repliconRequestIndex');
+      if (idxEl && data.last_request_index != null) idxEl.value = data.last_request_index;
+    }
+    _repliconCredsOk = !!(data.base_url && data.server_view_state_id && data.session_id && data.cookie_set);
+  } catch (_) { _repliconCredsOk = false; }
+}
+
+function copyScript(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => showToast('Script copied!'));
+}
+
+function updateRepliconCacheStatus() {
+  const el = document.getElementById('repliconCacheStatus');
+  if (!el) return;
+  if (_repliconCache?.synced_at) {
+    const d = new Date(_repliconCache.synced_at);
+    const label = d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    el.textContent = `${_repliconCache.projects?.length || 0} projects · ${label}`;
+  } else {
+    el.textContent = 'Not synced';
+  }
+  renderRepliconProjectBrowser();
+}
+
+function renderRepliconProjectBrowser() {
+  const browser = document.getElementById('repliconProjectBrowser');
+  const projectList = document.getElementById('rpbProjectList');
+  if (!browser || !projectList) return;
+
+  const projects = _repliconCache?.projects;
+  if (!projects?.length) { browser.style.display = 'none'; return; }
+
+  browser.style.display = '';
+  const sorted = [...projects].sort((a, b) => a.code.localeCompare(b.code));
+  projectList.innerHTML = sorted.map((p, i) => {
+    const parts = p.name.split(' - ');
+    const label = parts.length > 1 ? `${p.code} — ${parts[1].trim()}` : p.name;
+    return `<div class="rpb-item" data-proj-id="${esc(p.id)}" onclick="selectRepliconProject('${esc(p.id)}')" title="${esc(p.name)}">${esc(label)}</div>`;
+  }).join('');
+
+  document.getElementById('rpbTaskList').innerHTML =
+    '<span style="color:var(--text-faint);">Select a project</span>';
+}
+
+function selectRepliconProject(projId) {
+  const proj = _repliconCache?.projects?.find(p => p.id === projId);
+  if (!proj) return;
+
+  document.querySelectorAll('#rpbProjectList .rpb-item').forEach(el => {
+    el.classList.toggle('rpb-item-active', el.dataset.projId === projId);
+  });
+
+  const taskList = document.getElementById('rpbTaskList');
+  if (!proj.tasks?.length) {
+    taskList.innerHTML = '<span style="color:var(--text-faint);">No tasks</span>';
+    return;
+  }
+  const nameCounts = {};
+  proj.tasks.forEach(t => { nameCounts[t.name] = (nameCounts[t.name] || 0) + 1; });
+  taskList.innerHTML = proj.tasks.map(t => {
+    const path = t.path || [t.name];
+    const hasDupe = nameCounts[t.name] > 1;
+    const ancestors = path.slice(0, -1);
+    const prefix = ancestors.length ? `<span style="color:var(--text-faint);">${esc(ancestors.join(' › '))} › </span>` : '';
+    const highlight = hasDupe && ancestors.length ? prefix : '';
+    return `<div class="rpb-item rpb-task" title="${esc(path.join(' › '))}">${highlight}${esc(t.name)}</div>`;
+  }).join('');
+}
+
+async function saveRepliconCredentials() {
+  const base_url             = document.getElementById('repliconBaseUrl').value.trim().replace(/\/$/, '');
+  const cookie_header        = document.getElementById('repliconCookieHeader').value.trim();
+  const server_view_state_id = document.getElementById('repliconSVSId').value.trim();
+  const session_id           = document.getElementById('repliconSessionId').value.trim();
+  const last_request_index   = parseInt(document.getElementById('repliconRequestIndex').value, 10) || 0;
+  if (!base_url || !cookie_header || !server_view_state_id || !session_id) {
+    alert('All four fields are required.');
+    return;
+  }
+  try {
+    const resp = await fetch('/api/replicon/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base_url, cookie_header, server_view_state_id, session_id, last_request_index }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      _repliconCredsOk = true;
+      showToast('Credentials saved.');
+    }
+  } catch (_) {
+    alert('Failed to save credentials.');
+  }
+}
+
+async function syncRepliconProjects() {
+  const btn = document.getElementById('syncRepliconBtn');
+  const statusEl = document.getElementById('repliconCacheStatus');
+  btn.disabled = true;
+  btn.textContent = '↻ Syncing…';
+  try {
+    const resp = await fetch('/api/replicon/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      await loadRepliconCache();   // also refreshes the toggle visibility
+      updateRepliconCacheStatus();
+      const msg = data.task_warning
+        ? `Synced ${data.count} projects (tasks failed: ${data.task_warning})`
+        : `Synced ${data.count} projects!`;
+      showToast(msg);
+      if (data.task_warning) console.warn('Task sync warning:', data.task_warning);
+    } else {
+      if (statusEl) statusEl.textContent = `Error: ${data.error}`;
+      showToast(`Sync failed: ${data.error}`);
+    }
+  } catch (e) {
+    showToast(`Sync error: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↻ Sync Projects & Tasks';
+  }
+}
+
+async function submitToReplicon() {
+  if (!_repliconCredsOk) {
+    showToast('Credentials need to be refreshed — recapture and save all four fields in Settings', 'warn');
+    return;
+  }
+  const rows = window._repliconRows;
+  if (!rows || !rows.length) return;
+  const btn = document.getElementById('submitRepliconBtn');
+  btn.disabled = true;
+  btn.textContent = '↻ Submitting…';
+  try {
+    const resp = await fetch('/api/replicon/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: currentDate,
+        rows: rows.map(r => ({ project: r.project, subProject: r.subProject, hours: r.hours, comments: r.comments })),
+      }),
+    });
+    const data = await resp.json();
+    if (!data.ok && !data.results) {
+      showToast(`Submit failed: ${data.error}`);
+      return;
+    }
+    let ok = 0, fail = 0;
+    (data.results || []).forEach((r, i) => {
+      const span = document.getElementById(`rs-${i}`);
+      if (!span) return;
+      if (r.ok) {
+        span.innerHTML = `<span class="replicon-status ok" title="Submitted">✓</span>`;
+        ok++;
+      } else {
+        span.innerHTML = `<span class="replicon-status err" title="${esc(r.error)}">✗</span>`;
+        fail++;
+      }
+    });
+    const total = ok + fail;
+    showToast(fail === 0 ? `All ${total} rows submitted!` : `Submitted ${ok}/${total} rows`);
+  } catch (e) {
+    showToast(`Submit error: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬆ Submit to Replicon';
+  }
 }
 
 function copyEntryAsText(id) {
   const e = loadEntries().find(x => x.id === id);
   if (!e) return;
-  const parts = [e.project, e.subProject, e.description, e.subDescription, e.furtherInfo]
+  const parts = [e.project, e.subProject, e.description, e.subDescription]
     .filter(Boolean).join(' · ');
   const text = `${parts} | ${e.start}–${e.finish} (${e.duration})`;
   navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
@@ -1144,7 +1684,7 @@ function renderStats() {
 // ══════════════════════════════════════════════
 function exportCSV() {
   const entries = loadEntries().sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
-  const headers = ['Year','Month','Day','Project','Sub Project','Description','Sub-Description','Further Info','Start','Finish','Time','Acc Time','Logged'];
+  const headers = ['Year','Month','Day','Project','Sub Project','Description','Sub-Description','Start','Finish','Time','Acc Time','Logged'];
   const byDate = {};
   entries.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
 
@@ -1155,7 +1695,7 @@ function exportCSV() {
       const d = new Date(date+'T00:00:00');
       acc += timeToMinutes(e.duration || '0:00');
       rows.push([d.getFullYear(), d.getMonth()+1, d.getDate(),
-        e.project, e.subProject, e.description, e.subDescription, e.furtherInfo,
+        e.project, e.subProject, e.description, e.subDescription,
         e.start, e.finish, e.duration, minutesToHHMM(acc), e.logged ? 'Yes':'No']);
     });
   });
@@ -1469,7 +2009,6 @@ async function saveSplit(cascade = false) {
       subProject:     tr.querySelector('.sr-subproject')?.value.trim() || '',
       description,
       subDescription: tr.querySelector('.sr-subdesc')?.value.trim() || '',
-      furtherInfo:    sourceEntry?.furtherInfo || '',
       start,
       finish,
       duration:       minutesToHHMM(durMins),
@@ -1514,10 +2053,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   syncDatePickers();
   await initData();
+  await loadRepliconCache();
   startHeartbeat();
   startClock();
   updateToggleUI();
   renderAll();
+  await refreshRepliconCreds();
+  setInterval(refreshRepliconCreds, 60_000);
 });
 
 

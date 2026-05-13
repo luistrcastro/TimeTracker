@@ -249,7 +249,8 @@
     top: 100%;
     bottom: auto;
     left: 0;
-    right: 0;
+    min-width: 100%;
+    width: max-content;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -436,8 +437,31 @@
   }
   .replicon-cell.copy-cell {
     justify-content: center;
+    gap: 6px;
     padding: 8px;
   }
+  .replicon-status {
+    font-size: 0.78rem;
+    cursor: default;
+    line-height: 1;
+  }
+  .replicon-status.ok   { color: #16a34a; }
+  .replicon-status.err  { color: #dc2626; cursor: help; }
+  .replicon-status.warn { color: #d97706; cursor: help; }
+
+  .rpb-item {
+    padding: 4px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rpb-item:last-child { border-bottom: none; }
+  .rpb-item:hover { background: var(--surface2); }
+  .rpb-item-active { background: var(--accent) !important; color: #fff !important; }
+  .rpb-task { cursor: default; color: var(--text-muted); }
 
   .copy-toast {
     position: fixed;
@@ -455,6 +479,8 @@
     pointer-events: none;
     z-index: 999;
   }
+  .copy-toast.warn { background: #b45309; }
+  [data-theme="dark"] .copy-toast.warn { background: #d97706; }
   .copy-toast.show {
     opacity: 1;
     transform: translateY(0);
@@ -822,6 +848,7 @@
   [data-theme="dark"] .inv-badge-sent { background: #0c1a30; color: #93c5fd; border-color: #2d4a8a; }
   [data-theme="dark"] .inv-badge-paid { background: var(--logged-bg); color: #4ade80; border-color: var(--logged-border); }
   [data-theme="dark"] .inv-badge-void { background: #2a1010; color: #f87171; border-color: #7a2020; }
+  [data-theme="dark"] .rpb-item-active { background: #5b6af5 !important; }
 
   /* ── Invoiced icon in Day/Week View (replaces checkbox) ── */
   .invoiced-icon { font-size: 0.9rem; cursor: default; }

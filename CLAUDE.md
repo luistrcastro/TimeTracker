@@ -12,7 +12,7 @@ A lightweight time tracking web app built for **Luis Felipe Castro** to replace 
 
 **This is a public repository.** Never commit sensitive or confidential information — no real project codes, client names, internal ticket numbers, credentials, or personal data. Use generic placeholders in examples and defaults.
 
-**Current version:** v2.2.0 (contractor.html only)
+**Current version:** v2.2.0 (contractor.html) / v2.2.0 (replicon.html — Replicon API integration)
 
 ---
 
@@ -23,15 +23,18 @@ TimeTracker.bat                  ← Windows launcher (double-click to start)
 TimeTracker-WSL.bat              ← WSL launcher template (fill in WSL_PATH and WSL_DISTRO)
 TimeTrackerSystem/
   index.html                     ← Landing page: 2-button launcher (Replicon / Contractor)
-  replicon.html                  ← Replicon variant (~1620 lines, v2.0.0)
-  contractor.html                ← Contractor variant (~1775 lines, v2.0.0)
+  replicon.html                  ← Replicon variant (v2.2.0, ~2100 lines)
+  contractor.html                ← Contractor variant (v2.1.0, ~1775 lines)
   common.js                      ← Shared JS (~500 lines): data layer, utilities, theme, modals
-  common.css                     ← Shared CSS (~22KB): all styles for both variants
-  server.py                      ← Python HTTP server (~100 lines)
+  common.css                     ← Shared CSS: all styles for both variants
+  server.py                      ← Python HTTP server (~490 lines)
   data-replicon.json             ← Replicon entries (auto-created on first save)
   data-contractor.json           ← Contractor entries (auto-created on first save)
   data-contractor-invoices.json  ← Contractor invoices (auto-created on first invoice save)
   data-contractor-clients.json   ← Contractor client details (auto-created on first client save)
+  replicon-credentials.json      ← Replicon session credentials (gitignored, auto-created)
+  replicon-projects-cache.json   ← Synced project/task data from Replicon (gitignored)
+  replicon-row-map.json          ← Maps projectId:taskId → timesheet row index (gitignored)
   CLAUDE.md                      ← This file
 ```
 
@@ -48,24 +51,16 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
 - `/api/contractor/invoices` → `data-contractor-invoices.json`
 - `/api/contractor/clients` → `data-contractor-clients.json`
 - `/api/entries` → `data.json` (legacy backward-compat)
+- `GET /api/replicon/credentials` → returns `{ configured, base_url, server_view_state_id, session_id, cookie_set }` (never exposes cookie value)
+- `POST /api/replicon/credentials` → saves all 4 credential fields; starts 15-min expiry timer
+- `POST /api/replicon/sync` → fetches all projects + tasks from Replicon, writes `replicon-projects-cache.json`
+- `GET /api/replicon/cache` → returns `replicon-projects-cache.json` (or `{ projects: [] }`)
+- `GET/POST /api/replicon/row-map` → reads/writes `replicon-row-map.json`; POST also merges project/task names into cache
+- `POST /api/replicon/submit` → maps rows to Replicon URIs, calls `QueueRequests` (SetDuration + SetComment + Save)
 
 ---
 
-## How It Runs
-
-### Windows (native)
-1. User double-clicks `TimeTracker.bat` on their Desktop
-2. Bat file checks Python is installed, then `cd`s into `TimeTrackerSystem/` and runs `server.py`
-3. Python serves `index.html` at `http://localhost:5000` and opens the browser automatically
-4. All data reads/writes go through `GET/POST http://localhost:5000/api/replicon/entries` (replicon) or `/api/contractor/entries` (contractor)
-5. Closing the terminal window stops the server
-
-### WSL
-1. Copy `TimeTracker-WSL.bat` to the Windows Desktop and fill in `WSL_PATH` and `WSL_DISTRO`
-2. Double-clicking it opens a WSL terminal window running `server.py` from the repo path
-3. The bat opens the browser from the Windows side after a 2-second delay (WSL2 proxies `localhost` automatically — no firewall config needed)
-4. `server.py` detects WSL via `/proc/version` and skips its own `webbrowser.open()` call to avoid xdg-open errors
-5. Closing the WSL terminal window stops the server
+Launcher details (Windows bat, WSL setup): [`docs/running.md`](docs/running.md).
 
 ---
 
@@ -100,6 +95,7 @@ Contractor's `initData` overrides the common version to also run `migrateEntries
 - `logged` is a boolean — only relevant when description matches the Jira pattern (configurable via Settings tab, stored in `timetracker_jira_pattern`)
 - `acc_time` (accumulated time for the day) is **always computed on render**, never stored
 - `invoiced` is a boolean (contractor only) — set to `true` by `createInvoice()`, reverted to `false` by `voidInvoice()`; never set directly by the user
+- **PROJ mode (replicon only):** when `_repliconMode` is `true`, `project` stores the numeric Replicon project ID (e.g. `"9339"`) instead of the display code (e.g. `"2259"`). `subProject` always stores the task name string. `renderRepliconView()` and `isRowMapped()` handle both formats transparently.
 
 ### Invoice Schema (contractor only)
 ```json
@@ -182,17 +178,22 @@ Stored server-side in `data-contractor-clients.json` (falls back to `localStorag
 
 ### State Variables
 ```javascript
-let currentDate      // "YYYY-MM-DD" — shared across all tabs
-let _entries         // in-memory cache of all entries
-let _usingServer     // bool — true if server is reachable
-let _sortCol         // 'project' | 'subProject' | 'start' | null
-let _sortDir         // 'asc' | 'desc' | null
-let _darkMode        // bool
-let _use12h          // bool
-let _deletedEntry    // last deleted entry for undo
-let _undoTimeout     // timeout handle for undo toast
-let _jiraPattern     // regex string, loaded from localStorage key timetracker_jira_pattern
-let JIRA_RE          // RegExp built from _jiraPattern
+let currentDate        // "YYYY-MM-DD" — shared across all tabs
+let _entries           // in-memory cache of all entries
+let _usingServer       // bool — true if server is reachable
+let _sortCol           // 'project' | 'subProject' | 'start' | null
+let _sortDir           // 'asc' | 'desc' | null
+let _darkMode          // bool
+let _use12h            // bool
+let _deletedEntry      // last deleted entry for undo
+let _undoTimeout       // timeout handle for undo toast
+let _jiraPattern       // regex string, loaded from localStorage key timetracker_jira_pattern
+let JIRA_RE            // RegExp built from _jiraPattern
+
+// replicon.html only:
+let _repliconCache     // projects/tasks cache loaded from /api/replicon/cache
+let _repliconMode      // bool — true = PROJ mode (select dropdowns), false = FREE mode (text inputs)
+let _repliconCredsOk   // bool — true only when all 4 credential fields are present on server
 ```
 
 ### Render Functions
@@ -454,26 +455,24 @@ All CSS is in a single `<style>` block in `<head>`. Uses CSS custom properties (
 - `pointer-events: none` on toast when hidden, `pointer-events: all` when `.show` — required for Undo button to be clickable
 - **Dark mode hover colours** — never use `var(--accent)` for interactive hover states in dark mode; it resolves to near-black. Always add a `[data-theme="dark"]` override using `#5b6af5` (same as `--accent-interactive`)
 - **Native input icons** (calendar, clock) — styled via `::-webkit-calendar-picker-indicator`. In dark mode use `filter: invert(1)` to make them visible. `cursor: pointer` must also be set on this pseudo-element separately.
+- `.copy-toast.warn` — amber variant (`#b45309` light / `#d97706` dark) used for warning toasts (e.g. credentials not configured); stays visible 4s instead of 2s
+- `.rpb-item`, `.rpb-item:hover`, `.rpb-item-active`, `.rpb-task` — Replicon project browser styles in the Settings tab
+- `.replicon-status.ok` / `.replicon-status.err` — per-row submit result indicators in the Replicon tab
 
 ---
 
 ## Python Server (server.py)
 
-~145 lines. Extends `SimpleHTTPRequestHandler` to serve static files and add generic JSON API endpoints. `load_data(filename)` and `_handle_post(filename)` are generic — adding a new data file requires only 2 lines in `do_GET` and 2 lines in `do_POST`.
-
-Current endpoints:
-- `GET/POST /api/entries` → `data.json` (legacy)
-- `GET/POST /api/replicon/entries` → `data-replicon.json`
-- `GET/POST /api/contractor/entries` → `data-contractor.json`
-- `GET/POST /api/contractor/invoices` → `data-contractor-invoices.json`
-- `GET/POST /api/contractor/clients` → `data-contractor-clients.json`
+~550 lines. Extends `SimpleHTTPRequestHandler`. `load_data(filename)` and `_handle_post(filename)` are generic — adding a new data file requires only 2 lines in `do_GET` and 2 lines in `do_POST`.
 
 `load_data(filename, default=None)` accepts an optional `default` argument — returns `[]` when omitted (entries/invoices), or the supplied value (e.g. `{}` for clients). This avoids returning an array when the data file is expected to be an object.
 
 `data.json` path is always relative to `server.py`'s own directory (`os.path.dirname(__file__)`).
-Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If changed, also update `const API` in `index.html`.
+Port is `5000` — defined as `PORT = 5000`. If changed, also update `const API` in `index.html`.
 
-`is_wsl()` checks `/proc/version` for `"microsoft"` — returns `True` when running inside WSL2. Used by `open_browser()` to skip `webbrowser.open()` (which fails in WSL with xdg-open errors). The WSL launcher bat handles browser opening instead.
+`is_wsl()` checks `/proc/version` for `"microsoft"` — skips `webbrowser.open()` in WSL to avoid xdg-open errors.
+
+Replicon-specific helpers (`replicon_call`, `queue_requests`, `extract_tasks_from_root`, `_expire_replicon_credentials`, QueueRequests call structure, column formula): [`docs/replicon-api.md`](docs/replicon-api.md).
 
 ---
 
@@ -495,7 +494,7 @@ Port is `5000` — defined as `PORT = 5000` at the top of `server.py`. If change
 
 Version is hardcoded in the variant HTML files' header. In `replicon.html` and `contractor.html` search for the version `<span>` — it appears once per file. Bump both when shipping a shared change; bump only the relevant file for variant-specific changes.
 
-Semantic versioning (major.minor.patch).
+Semantic versioning (major.minor.patch). Full version history and backlog: [`docs/history.md`](docs/history.md).
 
 **Version history:**
 - `v1.0.0` — Day view, inline entry row, Jira detection, Replicon tab, Data tab
@@ -519,6 +518,10 @@ Semantic versioning (major.minor.patch).
 
 ---
 
+Replicon API integration detail (credential files, PROJ mode, QueueRequests, row map, submit flow): [`docs/replicon-api.md`](docs/replicon-api.md).
+
+---
+
 ## Known Constraints & Decisions
 
 - **No frameworks** — vanilla JS only. No React, Vue, jQuery.
@@ -535,34 +538,17 @@ Semantic versioning (major.minor.patch).
 - **`switchTab()` uses `data-tab` attribute** — contractor's tab buttons must have `data-tab="day|week|replicon|data|invoicing"`. Falls back to index for replicon.html (which has no `data-tab` attrs).
 - **Gap/overlap** is computed from chronological order, not display sort order.
 - **Week definition:** Saturday to Friday (not Mon–Sun).
+- **`extract_tasks_from_root` — leaf-only rule** — only append tasks with no `ChildTasks`. Category/folder nodes may be disabled but still have enabled children; always recurse into them regardless of `Enabled`. Removing the `continue` on disabled nodes was a past bug fix — do not re-add it.
+- **Row Map bookmarklet href must be set in HTML** — setting it via JS after page load means dragging captures an empty href. The `javascript:` URL must be hardcoded in the `href` attribute at parse time.
+- **`SetComment` col is int, `SetDuration` col is str** — the QueueRequests API is inconsistent: `SetDuration` paramList passes col as a string, `SetComment` passes it as an int. Do not normalise them.
+- **Credentials are never returned raw** — `GET /api/replicon/credentials` returns `cookie_set: bool` instead of the actual cookie value. The cookie input field is therefore never auto-populated from the server.
 
 ---
 
-## Planned / Backlog Features
-
-### Phase 2 (remaining)
-- Project/sub-project autocomplete improvement (✅ arrow key nav added in v1.4.4; could still improve — e.g. show dropdown on focus, remember frequency)
-- Copy entries from another day (✅ done in v1.5.0)
-- Filter by project or Jira status
-- Hours-per-project summary panel
-
-### Phase 3
-- Export to CSV (✅ done in Data tab)
-- Replicon-style export per week
-- Print-friendly report (✅ invoice print/PDF done in v2.1.0)
-
-### Phase 4
-- Multi-user support (shared `data.json` on network drive, entries tagged by user)
-- Search across all days
-- Monthly summary view
-- Jira API integration (push time to tickets via REST API)
-- Replicon API integration (pull projects, push time)
-
----
 
 ## How to Make Changes
 
-1. Edit `TimeTrackerSystem/index.html` directly — it's the only file that needs changing for most features
+1. Edit the relevant file directly (`replicon.html`, `contractor.html`, `common.js`, `common.css`, `server.py`) — there is no build step
 2. Refresh the browser (no build step needed)
 3. For server changes, edit `server.py` and restart via `TimeTracker.bat`
 4. Bump the version string in the header when done

@@ -1,2 +1,5 @@
 data/backup/
 data/*
+TimeTrackerSystem/replicon-credentials.json
+TimeTrackerSystem/replicon-projects-cache.json
+TimeTrackerSystem/replicon-row-map.json

@@ -29,6 +29,8 @@ window.TT_CONFIG = {
     <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
     <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.0</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
+    <span style="font-family:var(--mono);font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.06em;text-transform:uppercase;">Contractor</span>
+    <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.5);">☀</span>
       <div id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode" style="width:32px;height:18px;border-radius:9px;background:rgba(255,255,255,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
@@ -48,7 +50,6 @@ window.TT_CONFIG = {
     </div>
     <button onclick="toggleShortcutsHelp()" title="Keyboard shortcuts (?)" style="background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.45);padding:2px 6px;border-radius:4px;line-height:1;" onmouseover="this.style.color='rgba(255,255,255,0.8)'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">?</button>
     <div id="serverDot" title="Checking server..." style="width:8px;height:8px;border-radius:50%;background:#555;transition:background 0.3s;flex-shrink:0;"></div>
-    <div class="header-date" id="headerDate"></div>
   </div>
 </header>
 
@@ -62,25 +63,24 @@ window.TT_CONFIG = {
       <button class="tab" data-tab="data" onclick="switchTab('data')">Data</button>
       <button class="tab" data-tab="invoicing" onclick="switchTab('invoicing')">Invoicing</button>
     </div>
-    <span style="margin-left:auto;font-family:var(--mono);font-size:0.72rem;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;">Contractor</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+    <button class="btn btn-sm" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
+  </div>
   </div>
 
   <!-- ══ DAY VIEW TAB ══ -->
   <div id="tab-day">
-    <!-- Top bar -->
-    <div class="topbar">
+    <!-- Date nav + summary inline -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <div class="date-nav">
         <button onclick="changeDate(-1)" title="Previous day">‹</button>
         <input type="date" id="datePicker" onchange="onDateChange()">
         <button onclick="changeDate(1)" title="Next day">›</button>
         <button class="today-btn" onclick="goToday()">today</button>
       </div>
-      <div class="spacer"></div>
-      <button class="btn btn-sm" onclick="openCopyFrom()" title="Copy entries from another day">⎘ Copy from...</button>
+      <div style="flex:1;"></div>
+      <div class="day-summary" id="daySummary" style="margin-bottom:0;"></div>
     </div>
-
-    <!-- Summary chips -->
-    <div class="day-summary" id="daySummary"></div>
 
     <!-- Table -->
     <div class="table-wrap">
@@ -1873,7 +1873,6 @@ function renderDayView(newRowPrefillStart) {
   const unlogged  = entries.filter(e => hasJira(e.description) && !e.logged);
   const uninvoicedMins = entries.reduce((s, e) => e.invoiced ? s : s + timeToMinutes(e.duration || '0:00'), 0);
   const chips = [
-    `<div class="summary-chip"><strong>${formatDateHeader(currentDate)}</strong></div>`,
     `<div class="summary-chip">Total: <strong>${minutesToHHMM(accMins)}</strong> &nbsp;(${minutesToDecimal(accMins)} h)</div>`,
     `<div class="summary-chip">Entries: <strong>${entries.length}</strong></div>`,
     entries.length ? `<div class="summary-chip${uninvoicedMins > 0 ? ' warn' : ''}">Uninvoiced: <strong>${minutesToDecimal(uninvoicedMins)} h</strong></div>` : '',
