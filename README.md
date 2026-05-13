@@ -1,153 +1,232 @@
 # Time Tracker
 
-A lightweight, local-first time tracking app for logging daily work tasks and compiling them into a Replicon-ready summary. No cloud, no account, no install — just Python and a browser.
+Personal time tracking web app. Log work entries throughout the day, compile them for Replicon, and generate client invoices.
 
 ---
 
-## What it does
+## Stack
 
-- **Log tasks** throughout the day with project, description, start/finish times
-- **Detect gaps and overlaps** between entries automatically
-- **Compile a Replicon summary** — hours grouped by project, comments ready to paste
-- **Copy entries from a previous day** to reuse recurring tasks
-- **Split or cascade** time entries when your schedule shifts
-- Works offline — saves to a local `data.json` file with localStorage fallback
-
----
-
-## Requirements
-
-- **Python 3** (any recent version)
-- A modern browser (Chrome, Edge, Firefox)
-- Windows (the launcher is a `.bat` file)
-
----
-
-## Getting started
-
-### Windows
-
-1. **Download or clone** this repository
-2. **Double-click `TimeTracker.bat`** — it starts the local server and opens the app in your browser
-3. Start logging time
-
-> To stop the app, close the terminal window that opened with it.
-
-### WSL (Windows Subsystem for Linux)
-
-If your files live inside a WSL distro (e.g. you cloned the repo in WSL), use the included `TimeTracker-WSL.bat` instead:
-
-1. **Copy `TimeTracker-WSL.bat` to your Windows Desktop**
-2. **Open it in a text editor** and fill in the two variables at the top:
-   ```bat
-   set WSL_PATH=/home/youruser/path/to/TimeTrackerSystem
-   set WSL_DISTRO=Ubuntu
-   ```
-   Run `wsl -l` in a cmd window if you're unsure of your distro name.
-3. **Double-click it** — opens a WSL terminal running the server, then opens your browser automatically
-
-No firewall configuration needed — WSL2 proxies `localhost` ports to Windows automatically.
-
-> To stop the app, close the WSL terminal window.
-
----
-
-## How to use
-
-### Day View
-
-The main screen. Each row is a time entry.
-
-| Field | Description |
+| Layer | Tech |
 |---|---|
-| **Project** | Project code (e.g. `1234`) |
-| **Sub Project** | Sub-category (e.g. `General`) |
-| **Description** | What you worked on. Use a Jira ticket number (e.g. `PROJ-123`) to enable the logged checkbox |
-| **Sub-Description** | Additional detail |
-| **Start / Finish** | Time range — type or use the time picker |
-| **Duration** | Calculated automatically |
-| **Acc Time** | Cumulative time logged for the day |
-
-**Row actions:** Edit (✎) · Duplicate (⧉) · Split (⑃) · Copy as text (⎘) · Delete (✕ with 5s undo)
-
-**Keyboard shortcuts in the new-entry row:**
-- `Enter` moves to the next field
-- `Enter` on Finish saves the entry
-- `↑ / ↓` navigate autocomplete suggestions; `Escape` closes them
+| Backend API | Laravel 12 + Sanctum + Postgres 16 |
+| Frontend | Nuxt 4 + Vue 3 + Vuetify 3 + TypeScript |
+| Dev database | Docker (postgres:16-alpine) |
+| Dev email | Mailpit |
+| Prod backend | Fly.io (`yyz`) |
+| Prod database | Supabase (pooler port 6543) |
+| Prod frontend | Cloudflare Pages |
 
 ---
 
-### Week View
+## Local development
 
-A read-only Sat–Fri overview of all entries, grouped by day.
+### Prerequisites
+
+- Docker + Docker Compose
+- Node.js 20+
+
+### 1. Start the backend
+
+```bash
+cp backend/.env.example backend/.env
+docker compose -f docker/dev/docker-compose.yml up -d
+
+# First time only
+docker compose -f docker/dev/docker-compose.yml exec laravel php artisan key:generate
+docker compose -f docker/dev/docker-compose.yml exec laravel php artisan migrate
+```
+
+- Backend: http://localhost:8000
+- Mailpit (email): http://localhost:8025
+
+The Laravel container hot-reloads — edit files in `backend/` and changes apply immediately.
+
+### 2. Start the frontend
+
+```bash
+cp frontend/.env.example frontend/.env
+cd frontend && npm install && npm run dev
+```
+
+Frontend: http://localhost:3000
+
+### 3. Create an account
+
+Open http://localhost:3000/register. The verification email lands in Mailpit at http://localhost:8025.
 
 ---
 
-### Replicon Tab
+## Deployment
 
-Compiles all entries for the current day into a Replicon-ready table:
+### Prerequisites
 
-- Entries are grouped by **Project + Sub Project**
-- Hours are summed and rounded to the nearest **0.25**
-- Comments are formatted as `(0.5) Description - SubDescription, ...`
+- [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/) authenticated (`fly auth login`)
+- Supabase project (database + file storage)
+- Cloudflare Pages project connected to this repo
+- A transactional mail provider (Resend or Postmark)
 
-**Copy per row** — copies comments only (paste into Replicon's comments field)  
-**Copy All** — copies full rows (project, hours, comments) tab-separated
+### Backend — Fly.io
+
+**First deploy:**
+
+```bash
+cd backend
+
+# Generate an app key locally to use as a secret
+php artisan key:generate --show
+# → base64:xxxxx...
+
+fly secrets set \
+  APP_KEY="base64:xxxxx..." \
+  APP_URL="https://timetracker-api.fly.dev" \
+  FRONTEND_URL="https://your-pages-domain.pages.dev" \
+  DB_HOST="aws-0-ca-central-1.pooler.supabase.com" \
+  DB_PORT=6543 \
+  DB_DATABASE=postgres \
+  DB_USERNAME="postgres.your-project-ref" \
+  DB_PASSWORD="your-supabase-db-password" \
+  MAIL_MAILER=smtp \
+  MAIL_HOST="smtp.resend.com" \
+  MAIL_PORT=587 \
+  MAIL_USERNAME=resend \
+  MAIL_PASSWORD="re_xxxx..." \
+  MAIL_FROM_ADDRESS="noreply@yourdomain.com" \
+  AWS_ACCESS_KEY_ID="your-supabase-s3-key-id" \
+  AWS_SECRET_ACCESS_KEY="your-supabase-s3-secret" \
+  AWS_BUCKET="company-logos" \
+  AWS_ENDPOINT="https://your-project-ref.supabase.co/storage/v1/s3" \
+  AWS_USE_PATH_STYLE_ENDPOINT=true
+
+fly deploy
+```
+
+**Subsequent deploys** happen automatically via GitHub Actions on push to `main`. To deploy manually:
+
+```bash
+cd backend && fly deploy
+```
+
+Migrations run automatically on every deploy (`release_command = "php artisan migrate --force"` in `fly.toml`).
+
+> **Important:** Use Supabase's pooler port **6543**, not 5432. Fly scales to zero between requests; 5432 exhausts Supabase's direct connection limit.
+
+### Frontend — Cloudflare Pages
+
+Cloudflare Pages auto-deploys from `main` via GitHub Actions.
+
+Set this environment variable in your Cloudflare Pages project settings:
+
+```
+NUXT_PUBLIC_API_BASE=https://timetracker-api.fly.dev
+```
+
+For a manual deploy:
+
+```bash
+cd frontend
+npm run generate            # output goes to .output/public/
+# upload .output/public/ to Cloudflare Pages
+```
 
 ---
 
-### Settings Tab
+## Migrating data from the legacy app
 
-- **Configuration** — set the Jira ticket pattern to match your team's project key (e.g. `PROJ-\d+`)
-- **Export / Import** — back up and restore your data as JSON or CSV
-- **Stats** — total entries, days logged, and more
+The `timetracker:import` command reads the JSON files from `TimeTrackerSystem/` and writes them into the database for a given user account.
 
----
+**What gets imported:**
 
-## Features
-
-| Feature | Details |
+| File | Destination |
 |---|---|
-| **Jira detection** | Entries matching the configured pattern get an amber highlight and a "Needs Jira log" badge; check the box once logged |
-| **Gap & overlap detection** | Amber gap indicators and red overlap badges inserted automatically between rows |
-| **Time cascade** | When editing a finish time, shift all subsequent entries by the same delta in one click |
-| **Split entry** | Divide one entry into multiple with a dedicated modal |
-| **Copy from another day** | Copy any entries from a previous date (times are cleared; fields are preserved) |
-| **Dark mode** | Follows OS preference; toggle manually in the header |
-| **12/24h clock** | Toggle in the header; affects display only, not stored data |
-| **Offline fallback** | If the Python server goes down, entries save to localStorage and sync back when the server returns |
+| `data-replicon.json` (or `data.json`) | Replicon time entries |
+| `data-contractor.json` | Contractor time entries |
+| `data-contractor-clients.json` | Client billing details |
+| `data-contractor-invoices.json` | Invoices + entry links |
+| `replicon-credentials.json` | Replicon session credentials |
+| `replicon-projects-cache.json` | Projects and tasks cache |
+| `replicon-row-map.json` | Project/task → timesheet row index map |
 
----
+Existing UUIDs are reused. Running the import twice is safe — duplicates are skipped.
 
-## Data
+### Into the dev database
 
-All data is stored locally in `TimeTrackerSystem/data.json`. It is never sent anywhere.
+```bash
+# Find your user UUID
+docker compose -f docker/dev/docker-compose.yml exec laravel \
+  php artisan tinker --execute="echo \App\Models\User::where('email', 'you@example.com')->value('id');"
 
-The file is excluded from this repository (via `.gitignore`) — your entries stay on your machine.
+# Dry run first
+docker compose -f docker/dev/docker-compose.yml exec laravel \
+  php artisan timetracker:import /app/TimeTrackerSystem {USER_UUID} --dry-run
+
+# Run for real
+docker compose -f docker/dev/docker-compose.yml exec laravel \
+  php artisan timetracker:import /app/TimeTrackerSystem {USER_UUID}
+```
+
+Note: the container mounts `backend/` as `/app` — it cannot see `TimeTrackerSystem/` directly. See the production instructions below; the same workaround applies here.
+
+### Into the production database (Fly.io)
+
+The Fly machine scales to zero, so files uploaded via SSH won't persist. Instead, run the import locally using the dev container but pointed at Supabase.
+
+**1. Register on the production app first, then get your UUID:**
+
+```bash
+fly ssh console -a timetracker-api \
+  -C "php artisan tinker --execute=\"echo App\Models\User::where('email','you@example.com')->value('id');\""
+```
+
+**2. Copy the legacy JSON files into `backend/`** (the only directory mounted in the container):
+
+```bash
+cp TimeTrackerSystem/data-*.json backend/
+cp TimeTrackerSystem/replicon-credentials.json \
+   TimeTrackerSystem/replicon-projects-cache.json \
+   TimeTrackerSystem/replicon-row-map.json \
+   backend/ 2>/dev/null || true
+```
+
+**3. Run the import against the production database:**
+
+```bash
+docker compose -f docker/dev/docker-compose.yml exec \
+  -e DB_HOST="aws-0-ca-central-1.pooler.supabase.com" \
+  -e DB_PORT=6543 \
+  -e DB_DATABASE=postgres \
+  -e DB_USERNAME="postgres.your-project-ref" \
+  -e DB_PASSWORD="your-supabase-password" \
+  laravel \
+  php artisan timetracker:import /app {USER_UUID} --dry-run
+```
+
+Remove `--dry-run` once the counts look right. The `-e` flags override the DB connection for this one call only — your dev `.env` and dev database are untouched.
+
+**4. Clean up:**
+
+```bash
+rm -f backend/data-*.json backend/replicon-credentials.json \
+       backend/replicon-projects-cache.json backend/replicon-row-map.json
+```
 
 ---
 
 ## Project structure
 
 ```
-TimeTracker.bat              ← Windows launcher (Python on Windows)
-TimeTracker-WSL.bat          ← WSL launcher template (Python in WSL)
-TimeTrackerSystem/
-  index.html                 ← Entire app (vanilla HTML/CSS/JS, no build step)
-  server.py                  ← Python HTTP server
-  data.json                  ← Your entries (auto-created, gitignored)
+backend/                    Laravel 12 API
+frontend/                   Nuxt 4 SPA (source under frontend/app/)
+docker/dev/                 Dev docker-compose (postgres + mailpit + laravel)
+docker-compose.yml          Legacy standalone app compose (TimeTrackerSystem)
+TimeTrackerSystem/          Legacy single-user app (archived)
+docs/                       replicon-api.md, history.md, running.md
+CLAUDE.md                   Full developer reference (architecture, schemas, decisions)
 ```
 
----
-
-## Tech stack
-
-- **Frontend:** Vanilla HTML, CSS, JavaScript — single file, no frameworks, no bundler
-- **Backend:** Python `http.server` — serves the file and exposes a two-endpoint JSON API
-- **Storage:** `data.json` (primary) + `localStorage` (fallback)
+For full architecture details, data schemas, API routes, and development decisions see [CLAUDE.md](CLAUDE.md).
 
 ---
 
-## Version
+## Legacy app
 
-**v1.6.0** — see [CLAUDE.md](CLAUDE.md) for full version history and developer notes.
+The original single-user Python + vanilla JS app lives in `TimeTrackerSystem/` and still works standalone. See [docs/running.md](docs/running.md) for instructions.

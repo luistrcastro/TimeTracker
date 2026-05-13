@@ -1,0 +1,32 @@
+app = "timetracker-api"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "php artisan migrate --force"
+
+[env]
+  APP_ENV = "production"
+  LOG_CHANNEL = "stderr"
+  BROWSERSHOT_CHROMIUM_PATH = "/usr/bin/chromium-browser"
+
+[http_service]
+  internal_port = 9000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "10s"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
