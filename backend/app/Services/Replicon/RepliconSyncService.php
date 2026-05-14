@@ -6,6 +6,7 @@ use App\Models\RepliconProject;
 use App\Models\RepliconTask;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class RepliconSyncService
 {
@@ -35,6 +36,7 @@ class RepliconSyncService
                 'paramList'    => [(string) $page],
             ]]);
 
+            Log::debug('Replicon RequestProjects raw response', ['resp' => $resp]);
             $ret = $this->getReturnObject($resp, 1);
             if (!$ret) {
                 break;
@@ -49,7 +51,7 @@ class RepliconSyncService
             }
             $page++;
         }
-
+        Log::warning($projectsRaw);
         if (empty($projectsRaw)) {
             return $synced;
         }

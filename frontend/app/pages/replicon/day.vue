@@ -5,6 +5,7 @@
       :clients="[]"
       :has-deleted="!!replicon.deletedEntry"
       :prefill-start="prefillStart"
+      variant="replicon"
       @edit="openEdit"
       @duplicate="replicon.duplicate($event)"
       @split="() => {}"
@@ -18,6 +19,7 @@
       v-model="editDialog"
       :entry="editEntry"
       :clients="[]"
+      :entries="replicon.entries"
       @saved="handleEditSaved"
     />
 
@@ -61,7 +63,11 @@ const allEntriesByDate = computed(() => {
 })
 
 async function handleSave(entry: any) {
-  await replicon.create(entry)
+  await replicon.create({
+    ...entry,
+    project:    entry.clientName ?? entry.project ?? '',
+    subProject: entry.task       ?? entry.subProject ?? '',
+  })
 }
 
 function openEdit(id: string) {

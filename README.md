@@ -14,7 +14,7 @@ Personal time tracking web app. Log work entries throughout the day, compile the
 | Dev email | Mailpit |
 | Prod backend | Fly.io (`yyz`) |
 | Prod database | Supabase (pooler port 6543) |
-| Prod frontend | Cloudflare Pages |
+| Prod frontend | Fly.io (`yyz`) |
 
 ---
 
@@ -25,32 +25,25 @@ Personal time tracking web app. Log work entries throughout the day, compile the
 - Docker + Docker Compose
 - Node.js 20+
 
-### 1. Start the backend
+### 1. Start everything
 
 ```bash
-cp backend/.env.example backend/.env
-docker compose -f docker/dev/docker-compose.yml up -d
+docker compose up -d
 
 # First time only
-docker compose -f docker/dev/docker-compose.yml exec laravel php artisan key:generate
-docker compose -f docker/dev/docker-compose.yml exec laravel php artisan migrate
+docker compose exec laravel php artisan key:generate
+docker compose exec laravel php artisan migrate
 ```
 
-- Backend: http://localhost:8000
-- Mailpit (email): http://localhost:8025
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend | http://localhost:8020 |
+| Mailpit (email) | http://localhost:8025 |
 
-The Laravel container hot-reloads — edit files in `backend/` and changes apply immediately.
+Both Laravel and the Nuxt dev server hot-reload — edit files in `backend/` or `frontend/` and changes apply immediately.
 
-### 2. Start the frontend
-
-```bash
-cp frontend/.env.example frontend/.env
-cd frontend && npm install && npm run dev
-```
-
-Frontend: http://localhost:3000
-
-### 3. Create an account
+### 2. Create an account
 
 Open http://localhost:3000/register. The verification email lands in Mailpit at http://localhost:8025.
 
@@ -62,10 +55,9 @@ Open http://localhost:3000/register. The verification email lands in Mailpit at 
 
 - [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/) authenticated (`fly auth login`)
 - Supabase project (database + file storage)
-- Cloudflare Pages project connected to this repo
 - A transactional mail provider (Resend or Postmark)
 
-### Backend — Fly.io
+### Backend — Fly.io (`timetracker-api`)
 
 **First deploy:**
 
@@ -79,7 +71,7 @@ php artisan key:generate --show
 fly secrets set \
   APP_KEY="base64:xxxxx..." \
   APP_URL="https://timetracker-api.fly.dev" \
-  FRONTEND_URL="https://your-pages-domain.pages.dev" \
+  FRONTEND_URL="https://timetracker-app.fly.dev" \
   DB_HOST="aws-0-ca-central-1.pooler.supabase.com" \
   DB_PORT=6543 \
   DB_DATABASE=postgres \
@@ -100,32 +92,26 @@ fly secrets set \
 fly deploy
 ```
 
-**Subsequent deploys** happen automatically via GitHub Actions on push to `main`. To deploy manually:
-
-```bash
-cd backend && fly deploy
-```
-
 Migrations run automatically on every deploy (`release_command = "php artisan migrate --force"` in `fly.toml`).
 
 > **Important:** Use Supabase's pooler port **6543**, not 5432. Fly scales to zero between requests; 5432 exhausts Supabase's direct connection limit.
 
-### Frontend — Cloudflare Pages
+### Frontend — Fly.io (`timetracker-app`)
 
-Cloudflare Pages auto-deploys from `main` via GitHub Actions.
+`NUXT_PUBLIC_API_BASE` is baked into the JS bundle at build time. It's set in `frontend/fly.toml` under `[build.args]` — update it there if the API URL changes.
 
-Set this environment variable in your Cloudflare Pages project settings:
-
-```
-NUXT_PUBLIC_API_BASE=https://timetracker-api.fly.dev
-```
-
-For a manual deploy:
+**First deploy:**
 
 ```bash
 cd frontend
-npm run generate            # output goes to .output/public/
-# upload .output/public/ to Cloudflare Pages
+fly deploy
+```
+
+**Subsequent deploys** (both apps):
+
+```bash
+cd backend  && fly deploy
+cd frontend && fly deploy
 ```
 
 ---
@@ -152,15 +138,15 @@ Existing UUIDs are reused. Running the import twice is safe — duplicates are s
 
 ```bash
 # Find your user UUID
-docker compose -f docker/dev/docker-compose.yml exec laravel \
+docker compose exec laravel \
   php artisan tinker --execute="echo \App\Models\User::where('email', 'you@example.com')->value('id');"
 
 # Dry run first
-docker compose -f docker/dev/docker-compose.yml exec laravel \
+docker compose exec laravel \
   php artisan timetracker:import /app/TimeTrackerSystem {USER_UUID} --dry-run
 
 # Run for real
-docker compose -f docker/dev/docker-compose.yml exec laravel \
+docker compose exec laravel \
   php artisan timetracker:import /app/TimeTrackerSystem {USER_UUID}
 ```
 
@@ -190,7 +176,7 @@ cp TimeTrackerSystem/replicon-credentials.json \
 **3. Run the import against the production database:**
 
 ```bash
-docker compose -f docker/dev/docker-compose.yml exec \
+docker compose -f docker-compose.prod.yml exec \
   -e DB_HOST="aws-0-ca-central-1.pooler.supabase.com" \
   -e DB_PORT=6543 \
   -e DB_DATABASE=postgres \
@@ -216,8 +202,9 @@ rm -f backend/data-*.json backend/replicon-credentials.json \
 ```
 backend/                    Laravel 12 API
 frontend/                   Nuxt 4 SPA (source under frontend/app/)
-docker/dev/                 Dev docker-compose (postgres + mailpit + laravel)
-docker-compose.yml          Legacy standalone app compose (TimeTrackerSystem)
+docker-compose.yml          Dev: postgres + mailpit + laravel + frontend
+docker-compose.prod.yml     Prod image smoke-test + Fly.io secrets reference
+docker-compose.legacy.yml   Legacy standalone Python app (TimeTrackerSystem)
 TimeTrackerSystem/          Legacy single-user app (archived)
 docs/                       replicon-api.md, history.md, running.md
 CLAUDE.md                   Full developer reference (architecture, schemas, decisions)

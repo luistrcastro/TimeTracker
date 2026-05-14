@@ -13,6 +13,14 @@ export default defineNuxtConfig({
     preset: 'static',
   },
 
+  experimental: {
+    viteEnvironmentApi: true,
+  },
+
+  components: {
+    dirs: [{ path: '~/components', pathPrefix: false }],
+  },
+
   modules: [
     '@pinia/nuxt',
     'pinia-plugin-persistedstate/nuxt',
@@ -37,8 +45,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'http://localhost:8000',
+      apiBase: 'http://localhost:8020',
       appName: 'Time Tracker',
+      appVersion: '3.0.0',
     },
   },
 

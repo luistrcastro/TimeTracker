@@ -68,6 +68,7 @@ const props = defineProps<{
   modelValue: boolean
   entry: TimeEntry | null
   clients: { id: string; name: string }[]
+  entries?: TimeEntry[]
 }>()
 
 const emit = defineEmits<{
@@ -76,6 +77,8 @@ const emit = defineEmits<{
 }>()
 
 const contractor = useContractorStore()
+
+const allEntries = computed(() => props.entries ?? contractor.entries)
 
 const model = computed({
   get: () => props.modelValue,
@@ -100,8 +103,8 @@ const form = reactive({
 watch(() => props.entry, (e) => {
   if (!e) return
   const client = props.clients.find(c => c.id === e.clientId)
-  form.clientName     = client?.name ?? ''
-  form.task           = e.task ?? ''
+  form.clientName     = client?.name ?? e.project ?? ''
+  form.task           = e.task ?? e.subProject ?? ''
   form.description    = e.description
   form.subDescription = e.subDescription ?? ''
   form.date           = e.date
@@ -119,7 +122,7 @@ const cascadeDelta = computed(() => {
 
 const cascadeCount = computed(() => {
   if (!originalFinish.value || cascadeDelta.value === 0) return null
-  const affected = contractor.entries.filter(e =>
+  const affected = allEntries.value.filter(e =>
     e.date === form.date &&
     e.id !== props.entry?.id &&
     e.start && e.start >= originalFinish.value
@@ -162,6 +165,8 @@ async function save(cascade: boolean) {
     id:              props.entry.id,
     clientId:        client?.id ?? props.entry.clientId,
     task:            form.task,
+    project:         form.clientName,
+    subProject:      form.task,
     description:     form.description,
     subDescription:  form.subDescription,
     date:            form.date,
@@ -172,7 +177,7 @@ async function save(cascade: boolean) {
   }
 
   if (cascade && cascadeDelta.value !== 0) {
-    const affected = contractor.entries.filter(e =>
+    const affected = allEntries.value.filter(e =>
       e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
     )
     for (const ae of affected) {

@@ -6,7 +6,7 @@ Laravel 12 REST API. See the [root README](../README.md) for local dev setup, de
 
 ```bash
 # Run inside the Docker container:
-docker compose -f ../docker/dev/docker-compose.yml exec laravel <command>
+docker compose exec laravel <command>
 
 php artisan migrate                          # run pending migrations
 php artisan migrate:fresh --seed             # wipe and reseed (dev only)

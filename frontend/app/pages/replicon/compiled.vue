@@ -6,7 +6,7 @@
         {{ replicon.credsOk ? 'Credentials OK' : 'Credentials not set' }}
       </v-chip>
       <v-spacer />
-      <v-btn size="small" variant="outlined" prepend-icon="mdi-content-copy" @click="copyAll">Copy All</v-btn>
+      <v-btn class="mr-2" size="small" variant="outlined" prepend-icon="mdi-content-copy" @click="copyAll">Copy All</v-btn>
       <v-btn
         size="small" color="primary" prepend-icon="mdi-send"
         :loading="submitting"

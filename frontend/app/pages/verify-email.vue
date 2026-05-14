@@ -3,7 +3,7 @@
     <v-icon size="56" color="primary" class="mb-4">mdi-email-check-outline</v-icon>
     <div class="text-h6 font-weight-bold mb-2">Verify your email</div>
     <div class="text-body-2 mb-6 text-medium-emphasis">
-      We sent a verification link to <strong>{{ auth.user?.email }}</strong>.
+      We sent a verification link to <strong>{{ auth.user?.email || route.query.email }}</strong>.
       Check your inbox and click the link.
     </div>
 
@@ -33,11 +33,9 @@ const verified = ref(false)
 const error = ref('')
 
 onMounted(async () => {
-  if (route.query.verified === '1' || (route.query.id && route.query.hash)) {
+  if (route.query.verified === '1') {
     try {
-      if (route.query.id && route.query.hash) {
-        await auth.verifyEmail(route.query as Record<string, string>)
-      }
+      await auth.me()
       verified.value = true
       setTimeout(() => router.push(`/${useUiStore().activeVariant}/day`), 1500)
     } catch (e: any) {

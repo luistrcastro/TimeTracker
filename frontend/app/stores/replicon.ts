@@ -167,8 +167,9 @@ export const useRepliconStore = defineStore('replicon', {
       this.syncing = true
       this.lastSyncStatus = 'Syncing…'
       try {
-        const result = await api<{ message: string }>('/api/replicon/sync', { method: 'POST' }) as any
-        this.lastSyncStatus = result.message ?? 'Sync queued'
+        const result = await api<{ message: string; projects: RepliconProject[] }>('/api/replicon/sync', { method: 'POST' }) as any
+        this.projects = result.projects ?? []
+        this.lastSyncStatus = result.message ?? 'Sync complete'
       } catch (e: any) {
         this.lastSyncStatus = e?.data?.message ?? 'Sync failed'
       } finally {

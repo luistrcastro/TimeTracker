@@ -26,8 +26,8 @@ class CredentialsController extends Controller
     {
         $data = $request->validate([
             'base_url'             => ['required', 'url'],
-            'session_id'           => ['required', 'string'],
-            'server_view_state_id' => ['required', 'string'],
+            'session_id'           => ['nullable', 'string'],
+            'server_view_state_id' => ['nullable', 'string'],
             'cookie_header'        => ['required', 'string'],
         ]);
 

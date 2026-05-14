@@ -37,15 +37,15 @@ class ImportTimeTrackerData extends Command
 
         $this->info("Importing into user: {$user->email}" . ($dry ? ' [DRY RUN]' : ''));
 
-        Auth::onceUsingId($userId, function () use ($jsonDir, $dry, $userId, $user) {
-            $this->importRepliconEntries($jsonDir, $dry);
-            $this->importContractorEntries($jsonDir, $userId, $dry);
-            $this->importClients($jsonDir, $userId, $dry);
-            $this->importInvoices($jsonDir, $userId, $dry);
-            $this->importRepliconCredentials($jsonDir, $dry);
-            $this->importRepliconProjectsCache($jsonDir, $userId, $dry);
-            $this->importRepliconRowMap($jsonDir, $userId, $dry);
-        });
+        Auth::onceUsingId($userId);
+
+        $this->importRepliconEntries($jsonDir, $dry);
+        $this->importContractorEntries($jsonDir, $userId, $dry);
+        $this->importClients($jsonDir, $userId, $dry);
+        $this->importInvoices($jsonDir, $userId, $dry);
+        $this->importRepliconCredentials($jsonDir, $dry);
+        $this->importRepliconProjectsCache($jsonDir, $userId, $dry);
+        $this->importRepliconRowMap($jsonDir, $userId, $dry);
 
         $this->info('Import complete.');
         return 0;

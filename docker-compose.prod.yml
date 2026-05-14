@@ -1,0 +1,80 @@
+# Production image smoke-test — builds and runs both production images locally
+# so you can verify before deploying to Fly.io.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up --build
+#
+# First time only (backend):
+#   docker compose -f docker-compose.prod.yml exec laravel php artisan key:generate
+#   docker compose -f docker-compose.prod.yml exec laravel php artisan migrate --force
+#
+# Deploy to Fly.io:
+#   cd backend  && fly deploy
+#   cd frontend && fly deploy
+#
+# Backend secrets (set once, or when they change):
+#   cd backend
+#   fly secrets set \
+#     APP_KEY="..." \
+#     APP_URL="https://timetracker-api.fly.dev" \
+#     FRONTEND_URL="https://timetracker-app.fly.dev" \
+#     DB_HOST="..." DB_PORT=6543 DB_DATABASE=postgres \
+#     DB_USERNAME="postgres.<project-ref>" DB_PASSWORD="..." \
+#     MAIL_HOST="smtp.resend.com" MAIL_USERNAME=resend MAIL_PASSWORD="re_..." \
+#     MAIL_FROM_ADDRESS="noreply@yourdomain.com" \
+#     AWS_ACCESS_KEY_ID="..." AWS_SECRET_ACCESS_KEY="..." \
+#     AWS_BUCKET="company-logos" \
+#     AWS_ENDPOINT="https://<project-ref>.supabase.co/storage/v1/s3" \
+#     AWS_USE_PATH_STYLE_ENDPOINT=true
+#
+# Frontend build args (baked into the JS bundle — update fly.toml if the API URL changes):
+#   frontend/fly.toml → [build.args] NUXT_PUBLIC_API_BASE
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: timetracker, POSTGRES_USER: tt, POSTGRES_PASSWORD: tt }
+    volumes: ["pgdata_prod:/var/lib/postgresql/data"]
+
+  laravel:
+    build: { context: ./backend, target: runtime }
+    command: php artisan serve --host=0.0.0.0 --port=8020
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL:-http://localhost:8020}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: timetracker
+      DB_USERNAME: tt
+      DB_PASSWORD: tt
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@yourdomain.com}
+      FILESYSTEM_DISK: ${FILESYSTEM_DISK:-local}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_BUCKET: ${AWS_BUCKET:-}
+      AWS_ENDPOINT: ${AWS_ENDPOINT:-}
+      AWS_USE_PATH_STYLE_ENDPOINT: ${AWS_USE_PATH_STYLE_ENDPOINT:-false}
+      LOG_CHANNEL: stderr
+      BROWSERSHOT_CHROMIUM_PATH: /usr/bin/chromium-browser
+    ports: ["8020:8020"]
+    depends_on: [postgres]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost:8020}
+    ports: ["3000:80"]
+    depends_on: [laravel]
+
+volumes:
+  pgdata_prod: {}

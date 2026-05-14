@@ -33,7 +33,7 @@ export const useUiStore = defineStore('ui', {
   },
 
   persist: {
-    storage: 'localStorage',
+    storage: piniaPluginPersistedstate.localStorage(),
     pick: ['theme', 'use12h', 'jiraPattern', 'activeVariant'],
     key: 'tt_ui',
   },

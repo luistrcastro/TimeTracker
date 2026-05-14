@@ -54,9 +54,12 @@ export const useAuthStore = defineStore('auth', {
         this.user = await $fetch<User>(`${apiBase}/api/me`, {
           headers: { Authorization: `Bearer ${this.token}` },
         })
-      } catch {
-        this.token = null
-        this.user = null
+      } catch (e: any) {
+        // Only invalidate on 401 — network errors / server restarts should not log you out
+        if (e?.response?.status === 401) {
+          this.token = null
+          this.user = null
+        }
       }
     },
 
@@ -70,8 +73,9 @@ export const useAuthStore = defineStore('auth', {
 
     async verifyEmail(params: Record<string, string>) {
       const { public: { apiBase } } = useRuntimeConfig()
-      const qs = new URLSearchParams(params).toString()
-      await $fetch(`${apiBase}/api/auth/verify-email/${params.id}/${params.hash}?${qs}`, {
+      const { id, hash, ...rest } = params
+      const qs = new URLSearchParams(rest).toString()
+      await $fetch(`${apiBase}/api/auth/verify-email/${id}/${hash}?${qs}`, {
         method: 'GET',
       })
       if (this.user) this.user.email_verified_at = new Date().toISOString()
@@ -95,7 +99,7 @@ export const useAuthStore = defineStore('auth', {
   },
 
   persist: {
-    storage: 'localStorage',
+    storage: piniaPluginPersistedstate.localStorage(),
     pick: ['token', 'user'],
     key: 'tt_auth',
   },

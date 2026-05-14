@@ -566,7 +566,7 @@ Replicon API integration detail (credential files, PROJ mode, QueueRequests, row
 |---|---|---|
 | Backend API | Laravel 12 + Sanctum (Bearer tokens) + Postgres 16 | Fly.io (`yyz`) |
 | Database | Postgres 16 | Supabase (pooler port 6543) |
-| Frontend SPA | Nuxt 4 (`ssr:false`) + Vue 3 + Vuetify 3 + Pinia + TypeScript | Cloudflare Pages |
+| Frontend SPA | Nuxt 4 (`ssr:false`) + Vue 3 + Vuetify 3 + Pinia + TypeScript | Fly.io (`yyz`) — nginx serving static build |
 | File storage | Supabase Storage (S3-compatible) | Supabase |
 | Email (dev) | Mailpit | Docker |
 | Email (prod) | Resend or Postmark SMTP | — |
@@ -575,31 +575,28 @@ Replicon API integration detail (credential files, PROJ mode, QueueRequests, row
 ### Repo layout
 
 ```
-backend/                       Laravel 11 API
-frontend/                      Nuxt 3 SPA
-docker/dev/docker-compose.yml  postgres + mailpit + laravel (dev)
-.github/workflows/             deploy-backend.yml + deploy-frontend.yml
-TimeTrackerSystem/             legacy single-user app (archived after parity)
-docs/                          replicon-api.md, history.md, running.md
+backend/                   Laravel 12 API
+frontend/                  Nuxt 4 SPA
+docker-compose.yml         Dev: postgres + mailpit + laravel + frontend
+docker-compose.prod.yml    Prod image smoke-test + Fly.io secrets reference
+docker-compose.legacy.yml  Legacy standalone Python app (TimeTrackerSystem)
+.github/workflows/         deploy-backend.yml + deploy-frontend.yml
+TimeTrackerSystem/         legacy single-user app (archived after parity)
+docs/                      replicon-api.md, history.md, running.md
 ```
 
 ### Dev setup
 
 ```bash
-# Start backend + postgres + mailpit
-docker compose -f docker/dev/docker-compose.yml up -d
+# Start everything (postgres + mailpit + laravel + nuxt dev server)
+docker compose up -d
 
-# Frontend (run on host for fast HMR)
-cd frontend && npm install && npm run dev    # port 3000
+# First time only
+docker compose exec laravel php artisan key:generate
+docker compose exec laravel php artisan migrate
 ```
 
-Backend serves on port 8000. Mailpit UI on port 8025.
-
-**First-time setup:**
-```bash
-# Run migrations (once postgres container is running)
-docker compose -f docker/dev/docker-compose.yml exec laravel php artisan migrate
-```
+Backend: port 8020. Frontend: port 3000. Mailpit UI: port 8025.
 
 ### Backend structure (`backend/`)
 
@@ -721,9 +718,9 @@ Imports: `data-replicon.json` (or `data.json`), `data-contractor.json`, `data-co
 
 ### Production deployment
 
-- **Backend:** `fly deploy` from `backend/` (or via GitHub Actions on push to `main`). Fly app: `timetracker-api`, region `yyz`, scale-to-zero. Release command runs `php artisan migrate --force`.
-- **Frontend:** `npm run generate` → static `dist/` → Cloudflare Pages (GitHub auto-deploy on push to `main`).
-- **Secrets:** `fly secrets set APP_KEY=... DB_HOST=... DB_PASSWORD=... SUPABASE_S3_KEY=...`
+- **Backend:** `fly deploy` from `backend/`. Fly app: `timetracker-api`, region `yyz`, scale-to-zero. Release command runs `php artisan migrate --force`.
+- **Frontend:** `fly deploy` from `frontend/`. Fly app: `timetracker-app`, region `yyz`, scale-to-zero. Multi-stage build: `nuxt generate` → nginx. `NUXT_PUBLIC_API_BASE` is a build arg baked into the JS bundle — set in `frontend/fly.toml` under `[build.args]`.
+- **Backend secrets:** `fly secrets set APP_KEY=... DB_HOST=... DB_PASSWORD=...` (see `docker-compose.prod.yml` header for the full list).
 - **Database:** Supabase `ca-central-1`, use pooler port 6543 (not 5432) to avoid connection exhaustion on Fly scale-to-zero.
 
 ### How to make changes (new stack)

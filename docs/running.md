@@ -2,7 +2,7 @@
 
 ## New stack (v3.x — multi-user web app)
 
-See the [root README](../README.md) for full instructions: local dev setup with Docker, deployment to Fly.io + Cloudflare Pages, and migrating data from the legacy format.
+See the [root README](../README.md) for full instructions: local dev setup with Docker, deployment to Fly.io, and migrating data from the legacy format.
 
 ---
 

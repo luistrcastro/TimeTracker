@@ -5,8 +5,18 @@
     <v-form @submit.prevent="submit" :disabled="loading">
       <v-text-field v-model="name" label="Name" variant="outlined" class="mb-3" required autofocus />
       <v-text-field v-model="email" label="Email" type="email" variant="outlined" class="mb-3" required />
-      <v-text-field v-model="password" label="Password" type="password" variant="outlined" class="mb-3" required />
-      <v-text-field v-model="confirm" label="Confirm password" type="password" variant="outlined" class="mb-4" required />
+      <v-text-field
+        v-model="password" label="Password" :type="showPassword ? 'text' : 'password'"
+        variant="outlined" class="mb-3" required
+        :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+        @click:append-inner="showPassword = !showPassword"
+      />
+      <v-text-field
+        v-model="confirm" label="Confirm password" :type="showConfirm ? 'text' : 'password'"
+        variant="outlined" class="mb-4" required
+        :append-inner-icon="showConfirm ? 'mdi-eye-off' : 'mdi-eye'"
+        @click:append-inner="showConfirm = !showConfirm"
+      />
 
       <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
 
@@ -29,6 +39,8 @@ const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirm = ref('')
+const showPassword = ref(false)
+const showConfirm = ref(false)
 const error = ref('')
 const loading = ref(false)
 
@@ -37,7 +49,7 @@ async function submit() {
   loading.value = true
   try {
     await auth.register(name.value, email.value, password.value, confirm.value)
-    await router.push('/verify-email')
+    await router.push({ path: '/verify-email', query: { email: email.value } })
   } catch (e: any) {
     const errs = e?.data?.errors
     error.value = errs ? Object.values(errs).flat().join(' ') : (e?.data?.message ?? 'Registration failed')

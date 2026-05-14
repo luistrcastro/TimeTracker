@@ -17,10 +17,11 @@ class ContractorTimeEntryResource extends JsonResource
             'description'    => $this->description,
             'subDescription' => $this->sub_description,
             'date'           => $this->date?->format('Y-m-d'),
-            'start'          => $this->start,
-            'finish'         => $this->finish,
-            'duration'       => $this->durationAsHHMM(),
-            'invoiced'       => $this->invoiced,
+            'start'          => $this->start ? substr($this->start, 0, 5) : null,
+            'finish'         => $this->finish ? substr($this->finish, 0, 5) : null,
+            'duration'        => $this->durationAsHHMM(),
+            'durationMinutes' => $this->duration_minutes,
+            'invoiced'        => $this->invoiced,
         ];
     }
 }

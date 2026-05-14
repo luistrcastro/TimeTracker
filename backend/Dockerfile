@@ -16,7 +16,7 @@ RUN apk add --no-cache \
 WORKDIR /app
 # In dev, the source is bind-mounted at runtime; copy nothing from vendor stage.
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-EXPOSE 8000
+EXPOSE 8020
 
 # ── Stage 3: runtime (prod, includes chromium for Browsershot) ───────────────
 FROM php:8.3-fpm-alpine AS runtime

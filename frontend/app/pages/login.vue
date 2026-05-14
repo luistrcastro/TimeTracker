@@ -8,8 +8,10 @@
         variant="outlined" class="mb-3" required autofocus
       />
       <v-text-field
-        v-model="password" label="Password" type="password"
+        v-model="password" label="Password" :type="showPassword ? 'text' : 'password'"
         variant="outlined" class="mb-4" required
+        :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+        @click:append-inner="showPassword = !showPassword"
       />
 
       <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
@@ -33,6 +35,7 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
 

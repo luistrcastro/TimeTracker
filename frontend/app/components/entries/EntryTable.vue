@@ -7,7 +7,7 @@
       <v-btn icon="mdi-chevron-right" variant="text" size="small" @click="nextDay" />
       <span class="font-weight-medium">{{ formattedDate }}</span>
       <v-spacer />
-      <span class="text-medium-emphasis text-body-2">{{ todayTotal }}</span>
+      <span class="text-medium-emphasis text-body-2 mr-2">{{ todayTotal }}</span>
       <v-btn size="small" variant="outlined" prepend-icon="mdi-content-copy" @click="$emit('copyFrom')">Copy from…</v-btn>
     </div>
 
@@ -16,20 +16,20 @@
       <thead>
         <tr>
           <th @click="ui.cycleSort('project')" class="sortable">
-            Client {{ sortIndicator('project') }}
+            {{ props.variant === 'replicon' ? 'Project' : 'Client' }} {{ sortIndicator('project') }}
           </th>
           <th @click="ui.cycleSort('subProject')" class="sortable">
-            Task {{ sortIndicator('subProject') }}
+            {{ props.variant === 'replicon' ? 'Sub Project' : 'Task' }} {{ sortIndicator('subProject') }}
           </th>
           <th>Description</th>
-          <th>Sub-description</th>
+          <th>Sub-Description</th>
           <th @click="ui.cycleSort('start')" class="sortable">
             Start {{ sortIndicator('start') }}
           </th>
           <th>Finish</th>
-          <th>Duration</th>
-          <th>Acc</th>
-          <th>Inv</th>
+          <th>{{ props.variant === 'replicon' ? 'Time' : 'Duration' }}</th>
+          <th>{{ props.variant === 'replicon' ? 'Acc Time' : 'Acc' }}</th>
+          <th>{{ props.variant === 'replicon' ? 'Logged' : 'Inv' }}</th>
           <th></th>
         </tr>
       </thead>
@@ -96,6 +96,7 @@ const props = defineProps<{
   clients: { id: string; name: string; tasks?: string[] }[]
   hasDeleted: boolean
   prefillStart: string
+  variant?: 'replicon' | 'contractor'
 }>()
 
 const emit = defineEmits<{
@@ -129,7 +130,10 @@ const clientNames = computed(() => props.clients.map(c => c.name))
 const taskSuggestions = computed(() => {
   const all = new Set<string>()
   props.clients.forEach(c => (c.tasks ?? []).forEach(t => all.add(t)))
-  props.entries.forEach(e => { if (e.task) all.add(e.task) })
+  props.entries.forEach(e => {
+    if (e.task) all.add(e.task)
+    if (e.subProject) all.add(e.subProject)
+  })
   return [...all]
 })
 
@@ -211,7 +215,8 @@ const displayRows = computed((): DisplayRow[] => {
   sortedEntries.value.forEach(e => {
     rows.push({
       ...e,
-      clientName: clientById.value[e.clientId ?? ''] ?? '',
+      clientName: clientById.value[e.clientId ?? ''] || e.project || '',
+      task: e.task || e.subProject || '',
       accTime: accByEntry.value[e.id] ?? '0:00',
       _overlap: overlaps.has(e.id),
     } as DisplayRow)

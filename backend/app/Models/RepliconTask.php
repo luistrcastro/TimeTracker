@@ -9,7 +9,7 @@ class RepliconTask extends Model
 {
     use HasUuidV7;
 
-    protected $fillable = ['replicon_task_id', 'name', 'path'];
+    protected $fillable = ['replicon_project_id', 'replicon_task_id', 'name', 'path'];
 
     protected function casts(): array
     {

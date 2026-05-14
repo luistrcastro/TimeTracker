@@ -52,6 +52,11 @@ class RepliconClient
                 $payload
             );
 
+        \Illuminate\Support\Facades\Log::debug('Replicon HTTP response', [
+            'status' => $response->status(),
+            'body'   => $response->body(),
+        ]);
+
         $body = $response->json() ?? [];
 
         // Action 11: session expired redirect — parse new sessionId and retry once

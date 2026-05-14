@@ -51,6 +51,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get   ('replicon/projects',    [ProjectsCacheController::class, 'index']);
     Route::get   ('replicon/row-map',     [RowMapController::class, 'index']);
     Route::put   ('replicon/row-map',     [RowMapController::class, 'update']);
+    Route::post  ('replicon/row-map',     [RowMapController::class, 'storeFromBookmarklet']);
     Route::post  ('replicon/sync',        [SyncController::class, 'store']);
     Route::post  ('replicon/submit',      [SubmitController::class, 'store']);
 });
