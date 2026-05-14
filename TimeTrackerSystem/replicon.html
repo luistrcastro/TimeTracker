@@ -27,7 +27,7 @@ window.TT_CONFIG = {
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.0</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.1</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <span style="font-family:var(--mono);font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.06em;text-transform:uppercase;">Replicon</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
@@ -1917,8 +1917,41 @@ function _appendSplitRow(data) {
     return td;
   }
 
-  const tdProject    = inputTd('sr-project', 'text', data.project || '', 'Project');
-  const tdSubProject = inputTd('sr-subproject', 'text', data.subProject || '', 'Sub Project');
+  const useSelects = _repliconMode && _repliconCache?.projects?.length;
+  let tdProject, tdSubProject;
+  if (useSelects) {
+    tdProject = document.createElement('td');
+    tdProject.style.padding = '5px 6px';
+    const projSel = document.createElement('select');
+    projSel.className = 'cell-input sr-project';
+    projSel.innerHTML = `<option value="">— project —</option>` + buildProjectOptions();
+    tdProject.appendChild(projSel);
+
+    const spDispId = `sr-sp-disp-${idx}`;
+    const spHidId  = `sr-sp-hidden-${idx}`;
+    tdSubProject = document.createElement('td');
+    tdSubProject.style.padding = '5px 6px';
+    const spHid = document.createElement('input');
+    spHid.type = 'hidden';
+    spHid.id = spHidId;
+    spHid.className = 'sr-subproject';
+    const spWrap = document.createElement('div');
+    spWrap.className = 'ac-wrap autocomplete-wrap';
+    const spDisp = document.createElement('input');
+    spDisp.className = 'cell-input';
+    spDisp.id = spDispId;
+    spDisp.type = 'text';
+    spDisp.placeholder = '— select task —';
+    spDisp.autocomplete = 'off';
+    const spList = document.createElement('div');
+    spList.className = 'autocomplete-list';
+    spList.id = 'spac-' + spDispId;
+    spWrap.append(spDisp, spList);
+    tdSubProject.append(spHid, spWrap);
+  } else {
+    tdProject    = inputTd('sr-project', 'text', data.project || '', 'Project');
+    tdSubProject = inputTd('sr-subproject', 'text', data.subProject || '', 'Sub Project');
+  }
   const tdDesc       = inputTd('sr-description', 'text', data.description || '', 'Description');
   const tdSubDesc    = inputTd('sr-subdesc', 'text', data.subDescription || '', 'Sub-Description');
 
@@ -1974,6 +2007,20 @@ function _appendSplitRow(data) {
   });
 
   tbody.appendChild(tr);
+
+  if (useSelects) {
+    const spDispId = `sr-sp-disp-${idx}`;
+    const spHidId  = `sr-sp-hidden-${idx}`;
+    tr.querySelector('.sr-project').value = data.project || '';
+    setupSubProjectCombobox(spDispId, spHidId, () => tr.querySelector('.sr-project')?.value);
+    setSubProjectComboboxValue(data.subProject || '', spDispId, spHidId, data.project || '');
+    tr.querySelector('.sr-project').addEventListener('change', () => {
+      document.getElementById(spHidId).value = '';
+      const dispEl = document.getElementById(spDispId);
+      if (dispEl) dispEl.value = '';
+      document.getElementById('spac-' + spDispId)?.classList.remove('show');
+    });
+  }
 }
 
 
