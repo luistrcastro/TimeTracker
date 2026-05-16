@@ -27,7 +27,7 @@ window.TT_CONFIG = {
 <header>
   <div style="display:flex;align-items:center;gap:14px;">
     <a href="/" class="logo" style="text-decoration:none;color:inherit;">TIME<span>/</span>TRACKER</a>
-    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.1</span>
+    <span style="font-family:var(--mono);font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.05em;">v2.2.2</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
     <span style="font-family:var(--mono);font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.06em;text-transform:uppercase;">Replicon</span>
     <span style="color:rgba(255,255,255,0.25);font-size:1rem;">|</span>
@@ -437,7 +437,7 @@ function renderCopyFromList() {
   }
 
   list.innerHTML = entries.map(e => {
-    const proj = [projDisplayName(e.project), e.subProject].filter(Boolean).join(' · ');
+    const proj = [projDisplayName(e.project), taskDisplayName(e.subProject, e.project)].filter(Boolean).join(' · ');
     const desc = [e.description, e.subDescription].filter(Boolean).join(' — ');
     return `
       <label class="copy-from-item">
@@ -677,6 +677,14 @@ function projDisplayName(val) {
   return p ? p.code : val;
 }
 
+function taskDisplayName(taskId, projectId) {
+  if (!taskId || !_repliconCache?.projects) return taskId || '';
+  const proj = _repliconCache.projects.find(p => p.id === projectId);
+  if (!proj?.tasks) return taskId;
+  const task = proj.tasks.find(t => t.id === taskId) || proj.tasks.find(t => t.name === taskId);
+  return task ? taskLabel(task) : taskId;
+}
+
 function buildProjectOptions() {
   const sorted = [..._repliconCache.projects].sort((a, b) => a.code.localeCompare(b.code));
   return sorted.map(p => {
@@ -742,7 +750,7 @@ function setupSubProjectCombobox(displayId, hiddenId, getProjectId) {
   }
 
   function selectTask(t) {
-    document.getElementById(hiddenId).value = t.name;
+    document.getElementById(hiddenId).value = t.id;
     inp.value = taskLabel(t);
     listEl.classList.remove('show');
     acIndex = -1;
@@ -795,7 +803,7 @@ function setSubProjectComboboxValue(taskName, displayId, hiddenId, projectId) {
   if (!displayEl) return;
   if (!taskName) { displayEl.value = ''; return; }
   const proj = _repliconCache?.projects?.find(p => p.id === projectId);
-  const task = proj?.tasks?.find(t => t.name === taskName);
+  const task = proj?.tasks?.find(t => t.id === taskName) || proj?.tasks?.find(t => t.name === taskName);
   displayEl.value = task ? taskLabel(task) : taskName;
 }
 
@@ -1304,7 +1312,7 @@ function renderDayView(newRowPrefillStart) {
     if (rowClass) tr.className = rowClass;
     tr.innerHTML = `
       <td>${esc(projDisplayName(e.project))}</td>
-      <td>${esc(e.subProject)}</td>
+      <td>${esc(taskDisplayName(e.subProject, e.project))}</td>
       <td>${esc(e.description)}${jiraBadge}${overlapBadge}</td>
       <td class="muted">${esc(e.subDescription)}</td>
       <td class="mono">${formatTime(e.start)}</td>
@@ -1394,7 +1402,7 @@ function renderRepliconView() {
       `<span class="replicon-status warn" title="Project or task not in cache — run Sync in Settings">⚠</span>`;
     return `
     <div class="replicon-row">
-      <div class="replicon-cell"><strong>${esc(projDisplayName(r.project))}</strong>&nbsp;${esc(r.subProject)}</div>
+      <div class="replicon-cell"><strong>${esc(projDisplayName(r.project))}</strong>&nbsp;${esc(taskDisplayName(r.subProject, r.project))}</div>
       <div class="replicon-cell hours">${r.hours}</div>
       <div class="replicon-cell comments">${esc(r.comments)}</div>
       <div class="replicon-cell copy-cell">
@@ -1415,7 +1423,7 @@ function copyRow(i) {
 function copyAll() {
   const rows = window._repliconRows || [];
   if (!rows.length) return;
-  const text = rows.map(r => `${projDisplayName(r.project)} ${r.subProject}\t${r.hours}\t${r.comments}`).join('\n');
+  const text = rows.map(r => `${projDisplayName(r.project)} ${taskDisplayName(r.subProject, r.project)}\t${r.hours}\t${r.comments}`).join('\n');
   navigator.clipboard.writeText(text).then(() => showToast('All rows copied!'));
 }
 
@@ -1428,7 +1436,7 @@ function isRowMapped(row) {
   const proj = _repliconCache.projects.find(p => p.code === row.project || p.id === row.project);
   if (!proj) return false;
   if (!proj.tasks?.length) return true;
-  return proj.tasks.some(t => t.name === row.subProject);
+  return proj.tasks.some(t => t.id === row.subProject || t.name === row.subProject);
 }
 
 async function loadRepliconCache() {
@@ -1654,7 +1662,7 @@ async function submitToReplicon() {
 function copyEntryAsText(id) {
   const e = loadEntries().find(x => x.id === id);
   if (!e) return;
-  const parts = [e.project, e.subProject, e.description, e.subDescription]
+  const parts = [projDisplayName(e.project), taskDisplayName(e.subProject, e.project), e.description, e.subDescription]
     .filter(Boolean).join(' · ');
   const text = `${parts} | ${e.start}–${e.finish} (${e.duration})`;
   navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
@@ -1808,8 +1816,8 @@ function renderWeekView() {
               ? `<span class="jira-badge">Needs Jira log</span>`
               : '';
             return `<tr class="${rowClass}">
-              <td>${esc(e.project)}</td>
-              <td>${esc(e.subProject)}</td>
+              <td>${esc(projDisplayName(e.project))}</td>
+              <td>${esc(taskDisplayName(e.subProject, e.project))}</td>
               <td>${esc(e.description)}${jiraBadge}</td>
               <td class="muted">${esc(e.subDescription)}</td>
               <td class="mono">${formatTime(e.start)}</td>
@@ -1851,7 +1859,7 @@ function openSplit(id) {
   _splitOriginalFinish = e.finish || '';
 
   document.getElementById('splitOriginalInfo').textContent =
-    `${e.project}${e.subProject ? ' · ' + e.subProject : ''} — ${e.description} (${e.duration})`;
+    `${projDisplayName(e.project)}${e.subProject ? ' · ' + taskDisplayName(e.subProject, e.project) : ''} — ${e.description} (${e.duration})`;
   document.getElementById('splitOrigDur').textContent = e.duration;
 
   // Seed with one row from the source entry
