@@ -37,9 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Contractor
-    Route::apiResource('contractor/entries',  ContractorEntriesController::class);
-    Route::apiResource('contractor/clients',  ClientsController::class);
-    Route::apiResource('contractor/invoices', InvoicesController::class);
+    Route::apiResource('contractor/entries',  ContractorEntriesController::class)->names('contractor.entries');
+    Route::apiResource('contractor/clients',  ClientsController::class)->names('contractor.clients');
+    Route::apiResource('contractor/invoices', InvoicesController::class)->names('contractor.invoices');
     Route::get('contractor/invoices/{invoice}/pdf', [InvoicesController::class, 'pdf']);
     Route::get ('contractor/company',      [CompanyController::class, 'show']);
     Route::put ('contractor/company',      [CompanyController::class, 'update']);
@@ -50,7 +50,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::put('user/customization', [UserCustomizationController::class, 'update']);
 
     // Replicon — Phase 5
-    Route::apiResource('replicon/entries', RepliconEntriesController::class);
+    Route::apiResource('replicon/entries', RepliconEntriesController::class)->names('replicon.entries');
     Route::get   ('replicon/credentials', [CredentialsController::class, 'show']);
     Route::put   ('replicon/credentials', [CredentialsController::class, 'update']);
     Route::delete('replicon/credentials', [CredentialsController::class, 'destroy']);
