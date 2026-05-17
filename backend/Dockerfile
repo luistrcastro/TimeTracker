@@ -45,6 +45,7 @@ RUN apk add --no-cache \
         font-noto \
         nodejs \
         npm \
+        nginx \
     && docker-php-ext-install pdo pdo_pgsql opcache
 ENV BROWSERSHOT_CHROMIUM_PATH=/usr/bin/chromium-browser
 ENV BROWSERSHOT_NODE_PATH=/usr/bin/node
@@ -53,5 +54,11 @@ WORKDIR /app
 RUN npm install puppeteer --prefix /app
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
-RUN rm -f bootstrap/cache/*.php && php artisan optimize && php artisan event:cache
-EXPOSE 9000
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh \
+    && rm -f bootstrap/cache/*.php \
+    && php artisan optimize \
+    && php artisan event:cache
+EXPOSE 80
+CMD ["/start.sh"]
