@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class ContractorTimeEntryResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id'             => $this->id,
+            'clientId'       => $this->client_id,
+            'clientTaskId'   => $this->client_task_id,
+            'invoiceId'      => $this->invoice_id,
+            'task'           => $this->task,
+            'description'    => $this->description,
+            'subDescription' => $this->sub_description,
+            'date'           => $this->date?->format('Y-m-d'),
+            'start'          => $this->start ? substr($this->start, 0, 5) : null,
+            'finish'         => $this->finish ? substr($this->finish, 0, 5) : null,
+            'duration'        => $this->durationAsHHMM(),
+            'durationMinutes' => $this->duration_minutes,
+            'invoiced'        => $this->invoice_id !== null,
+        ];
+    }
+}

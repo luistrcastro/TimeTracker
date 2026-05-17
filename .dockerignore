@@ -1,6 +1,25 @@
-TimeTrackerSystem/data.json
-TimeTrackerSystem/backup/
-data/
-*.bat
+# ── Version control / tooling ────────────────────────────────────────────────
 .git
 .claude
+.github
+
+# ── Legacy app (not needed in any container) ─────────────────────────────────
+TimeTrackerSystem/
+data/
+
+# ── Frontend (built separately; not needed in backend image) ─────────────────
+frontend/
+
+# ── Docker dev data volumes ───────────────────────────────────────────────────
+docker/dev/postgres-data/
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

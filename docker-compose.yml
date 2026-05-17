@@ -1,8 +1,60 @@
 services:
-  timetracker:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./data:/data
-      - ./TimeTrackerSystem:/app:ro
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: timetracker, POSTGRES_USER: tt, POSTGRES_PASSWORD: tt }
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+
+  mailpit:
+    image: axllent/mailpit
+    ports: ["1025:1025", "8025:8025"]
+
+  laravel:
+    build: { context: ./backend, target: dev }
+    command: php artisan serve --host=0.0.0.0 --port=8020
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_URL: http://localhost:8020
+      FRONTEND_URL: http://localhost:3000
+      DB_HOST: postgres
+      DB_DATABASE: timetracker
+      DB_USERNAME: tt
+      DB_PASSWORD: tt
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    volumes: ["./backend:/app"]
+    ports: ["8020:8020"]
+    depends_on: [postgres, mailpit]
+
+  queue:
+    build: { context: ./backend, target: dev }
+    command: php artisan queue:work --sleep=3 --tries=3
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_URL: http://localhost:8020
+      FRONTEND_URL: http://localhost:3000
+      DB_HOST: postgres
+      DB_DATABASE: timetracker
+      DB_USERNAME: tt
+      DB_PASSWORD: tt
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    volumes: ["./backend:/app"]
+    depends_on: [postgres, laravel]
+
+  frontend:
+    image: node:20
+    working_dir: /app
+    command: sh -c "npm install && rm -rf .nuxt && npm run dev"
+    environment:
+      NUXT_HOST: 0.0.0.0
+      NUXT_PUBLIC_API_BASE: http://localhost:8020
+      NUXT_PUBLIC_APP_NAME: Time Tracker
+    volumes: ["./frontend:/app"]
+    ports: ["3000:3000"]
+    depends_on: [laravel]
+
+volumes:
+  pgdata: {}

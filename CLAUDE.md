@@ -546,10 +546,236 @@ Replicon API integration detail (credential files, PROJ mode, QueueRequests, row
 ---
 
 
-## How to Make Changes
+## How to Make Changes (Legacy — `TimeTrackerSystem/`)
 
 1. Edit the relevant file directly (`replicon.html`, `contractor.html`, `common.js`, `common.css`, `server.py`) — there is no build step
 2. Refresh the browser (no build step needed)
 3. For server changes, edit `server.py` and restart via `TimeTracker.bat`
 4. Bump the version string in the header when done
 5. Test: add an entry, edit it, delete + undo, check Replicon tab, check week view
+
+---
+
+## New Stack (v3.x — Multi-User Web App)
+
+> **Status:** In development on the `make-it-real` branch. `TimeTrackerSystem/` remains the production system until feature parity is confirmed.
+
+### Architecture
+
+| Layer | Technology | Hosting |
+|---|---|---|
+| Backend API | Laravel 12 + Sanctum (Bearer tokens) + Postgres 16 | Fly.io (`yyz`) |
+| Database | Postgres 16 | Supabase (pooler port 6543) |
+| Frontend SPA | Nuxt 4 (`ssr:false`) + Vue 3 + Vuetify 3 + Pinia + TypeScript | Fly.io (`yyz`) — nginx serving static build |
+| File storage | Supabase Storage (S3-compatible) | Supabase |
+| Email (dev) | Mailpit | Docker |
+| Email (prod) | Resend or Postmark SMTP | — |
+| PDF generation | Spatie Browsershot (Chromium + Node.js + Puppeteer in backend container) | Fly.io |
+
+### Repo layout
+
+```
+backend/                   Laravel 12 API
+frontend/                  Nuxt 4 SPA
+docker-compose.yml         Dev: postgres + mailpit + laravel + frontend
+docker-compose.prod.yml    Prod image smoke-test + Fly.io secrets reference
+docker-compose.legacy.yml  Legacy standalone Python app (TimeTrackerSystem)
+.github/workflows/         deploy-backend.yml + deploy-frontend.yml
+TimeTrackerSystem/         legacy single-user app (archived after parity)
+docs/                      replicon-api.md, history.md, running.md
+```
+
+### Dev setup
+
+```bash
+# Start everything (postgres + mailpit + laravel + nuxt dev server)
+docker compose up -d
+
+# First time only
+docker compose exec laravel php artisan key:generate
+docker compose exec laravel php artisan migrate
+```
+
+Backend: port 8020. Frontend: port 3000. Mailpit UI: port 8025.
+
+### Backend structure (`backend/`)
+
+```
+app/
+  Console/Commands/
+    ImportTimeTrackerData.php    # timetracker:import {jsonDir} {userId} [--dry-run]
+    PurgeExpiredRepliconCredentials.php  # replicon:purge-expired (scheduled every minute)
+  Enums/InvoiceStatus.php
+  Http/Controllers/Api/
+    Auth/{Register,Login,Logout,VerifyEmail,ResendVerification,
+          ForgotPassword,ResetPassword}Controller.php
+    Replicon/{Entries,Credentials,ProjectsCache,RowMap,Sync,Submit}Controller.php
+    Contractor/{Entries,Clients,Invoices,Company}Controller.php
+    UserCustomizationController.php
+  Http/Resources/               (JSON API shape for each entity)
+  Jobs/SyncRepliconProjects.php
+  Models/
+    User.php
+    RepliconTimeEntry.php  RepliconCredential.php
+    RepliconProject.php    RepliconTask.php  RepliconRowMap.php
+    ContractorTimeEntry.php  Client.php  ClientTask.php
+    Invoice.php  CompanySetting.php  UserCustomization.php
+    Concerns/{BelongsToUser,HasUuidV7,HasTimeWindow,HasDuration}.php
+  Services/
+    Replicon/{RepliconClient,RepliconSyncService,RepliconSubmitService}.php
+    Invoices/InvoicePdfService.php
+database/migrations/            all domain tables
+resources/views/invoices/invoice.blade.php
+routes/api.php
+```
+
+**Key design decisions:**
+- `BelongsToUser` trait: boots a global scope scoping every query to `auth()->id()`; auto-assigns `user_id` on `creating`. No-ops in Artisan/queue contexts without `auth()`.
+- `HasUuidV7` trait: uses `symfony/uid` v7 UUIDs (monotonic prefix keeps B-tree indexes hot).
+- Replicon credentials encrypted at rest via `'encrypted'` cast (AES-256-CBC via `APP_KEY`). `GET /api/replicon/credentials` never returns the raw cookie — only `cookie_set: bool`.
+- `invoice_id` FK lives on `contractor_time_entries`, not as a JSON array on invoices. `Invoice::timeEntries()` is `hasMany`.
+- `invoiced` boolean column was **dropped** from `contractor_time_entries`; invoice status is now derived from `invoice_id IS NOT NULL`. Do not re-add the column.
+- `replicon_task_id` nullable FK on `replicon_time_entries` — set when PROJ mode maps an entry to a specific Replicon task (UUID referencing `replicon_tasks`).
+- `client_task_id` nullable FK on `contractor_time_entries` — set when the selected task is a known `client_tasks` record.
+- Company settings are **server-side** (not localStorage) in the new stack.
+- `User::companySetting()` uses `->withoutGlobalScopes()` — required because `InvoicePdfService` runs outside an HTTP request context (no `auth()`) and the `BelongsToUser` global scope would otherwise return null.
+
+**User customization (server-side prefs):**
+- `UserCustomization` model: one row per user, `configuration` JSON column. `getConfigAttribute()` merges stored values over hard-coded defaults so all keys are always present — add new prefs to `$defaults` in the model, no migration needed.
+- Namespaces: `ui` (theme, use12h, activeVariant), `replicon` (jiraPattern), `contractor` (jiraPattern).
+- `persist.client.ts` Nuxt plugin runs on startup after `auth.me()` — calls `useUserCustomization().load()`, then `ui.loadFromServer()`, `replicon.loadCustomization()`, `contractor.loadCustomization()`.
+- Theme and use12h changes debounce-save to server (800ms) via `ui._debouncedSave()`. jiraPattern changes save explicitly via store actions.
+- `useUserCustomization()` composable: `load()` → `GET /api/user/customization`, `save(partial)` → `PUT /api/user/customization`.
+
+**PDF generation (Browsershot):**
+- Requires Chromium, Node.js, npm, and the `puppeteer` npm package — all installed in both `dev` and `runtime` Dockerfile stages.
+- `InvoicePdfService` explicitly sets node/npm binary paths via `setNodeBinary()` / `setNpmBinary()` — Alpine Linux paths (`/usr/bin/node`, `/usr/bin/npm`) are not found by Browsershot's default PATH expansion which includes macOS Homebrew paths.
+- Env vars `BROWSERSHOT_CHROMIUM_PATH`, `BROWSERSHOT_NODE_PATH`, `BROWSERSHOT_NPM_PATH` are set in the Dockerfile and can be overridden via `.env`.
+- `puppeteer` is installed at `/app/node_modules` via `npm install puppeteer --prefix /app` in the Dockerfile — this step must remain in both stages or PDF generation will fail after a rebuild.
+
+**Replicon API quirks preserved from Python port (do not change):**
+- `SetDuration paramList[2]` → `(string)$col`
+- `SetComment paramList[2]` → `(int)$col`
+- Column formula: `($iso + 1) % 7` where `$iso` = Carbon `dayOfWeekIso` (Mon=1..Sun=7)
+- `extractLeafTasks`: always recurse into folder nodes regardless of `Enabled`; only append leaf tasks (no `ChildTasks`)
+- Action 11 session redirect: parse `sessionId:'([^']+)'` from response, update creds, retry once
+- `last_request_index` incremented inside `DB::transaction + lockForUpdate` to prevent races
+
+### Frontend structure (`frontend/`)
+
+```
+nuxt.config.ts                 ssr:false, static preset, Vuetify plugin
+app.vue
+plugins/
+  vuetify.ts                   light/dark themes with primary=#5b6af5 in dark
+  persist.client.ts            on startup: auth.me() → load user customization → seed stores
+middleware/auth.global.ts      login → verify-email → app route guard
+stores/
+  auth.ts                      token + user, persisted to localStorage (tt_auth)
+  ui.ts                        theme, use12h, currentDate, sortCol; changes debounce-save to server
+  contractor.ts                entries + clients + invoices + company + jiraPattern
+  replicon.ts                  entries + credentials + projects + rowMap + jiraPattern
+composables/
+  useApi.ts                    $fetch wrapper, attaches Bearer, handles 401
+  useTimeFormat.ts             formatTime (12/24h), minutesToHHMM, minutesToDecimal
+  useGapOverlap.ts             detectGapsAndOverlaps (same logic as common.js)
+  useShortcuts.ts              global keydown: ←/→/[/], T, 1-5, tab switch
+  useUserCustomization.ts      load/save user prefs via GET|PUT /api/user/customization
+components/
+  entries/   AutocompleteInput, CopyFromDayDialog
+  contractor/  ContractorDayEntryTable, ContractorEntryEditDialog, ContractorEntryRowNew,
+               CompanySettingsCard, ClientDetailsCard, InvoiceCreateCard,
+               InvoiceList, InvoiceDetailDialog
+  replicon/    RepliconDayEntryTable, RepliconEntryEditDialog, RepliconEntryRowNew,
+               RepliconProjectSelect, RepliconSubProjectSelect, RepliconSplitDialog,
+               CredentialsCard, ProjectBrowser, RowMapEditor
+  ui/          DateNavBar (prev/today/next nav + slot for actions — used by replicon and contractor compiled pages)
+pages/
+  login / register / verify-email / forgot-password / reset-password
+  replicon/{day,week,compiled,settings}
+  contractor/{day,week,compiled,invoicing,settings}
+```
+
+**Key frontend constraints:**
+- `useShortcuts()` must be called inside `<script setup>` at the page level (not in layouts) to avoid duplicate listeners.
+- `AutocompleteInput` uses `inheritAttrs: false` + `v-bind="$attrs"` so it accepts all `v-text-field` props.
+- Cascade in `EntryEditDialog`: delta = new finish − original finish; affects rows where `start >= originalFinish` on same day.
+- Acc Time is always computed chronologically, regardless of the current display sort.
+- Dark mode primary color for interactive elements: `#5b6af5` (`--accent-interactive` in legacy CSS). Never use `--accent` (`#1a1c24`) for hover/focus in dark mode.
+- `InvoiceCreateCard` uses `v-select` (not `AutocompleteInput`) for the client field — clients are a known fixed list, not free-text.
+- `ContractorDayEntryTable` topbar shows `Today: Xh Ym | Week: Xh Ym`. Week is Sat–Fri (same convention as week view). Week total sums all entries across the week, not just the current day.
+- Contractor icon on the home page (`pages/index.vue`) uses `color="#6D3B2E"` (dark brown).
+- `Client.tasks` is `{ id: string; name: string }[]` (not `string[]`) — task objects, not raw strings. The `id` is the `client_tasks` PK. Do not assume tasks are plain strings.
+- Entry-table logic (gap/overlap, acc time, sort) lives in the variant-specific `*DayEntryTable` components — do not put it in pages.
+- `toApiPayload()` in stores uses `'key' in entry` guards so partial PATCHes only send changed fields.
+
+### API routes summary
+
+```
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/logout                     [auth]
+GET    /api/auth/verify-email/{id}/{hash}   [signed]
+POST   /api/auth/resend-verification        [auth]
+GET    /api/me                              [auth]
+
+GET|POST|PUT|DELETE  /api/replicon/entries/{id?}    [auth+verified]
+GET|PUT|DELETE       /api/replicon/credentials       [auth+verified]
+GET                  /api/replicon/projects           [auth+verified]
+GET|PUT              /api/replicon/row-map            [auth+verified]
+POST                 /api/replicon/sync               [auth+verified]
+POST                 /api/replicon/submit             [auth+verified]
+
+GET|POST|PUT|DELETE  /api/contractor/entries/{id?}   [auth+verified]
+GET|POST|PUT|DELETE  /api/contractor/clients/{id?}   [auth+verified]
+GET|POST|PUT|DELETE  /api/contractor/invoices/{id?}  [auth+verified]
+GET                  /api/contractor/invoices/{id}/pdf [auth+verified]
+GET|PUT              /api/contractor/company          [auth+verified]
+POST                 /api/contractor/company/logo     [auth+verified]
+
+GET|PUT              /api/user/customization          [auth+verified]
+
+GET /api/health
+```
+
+### Data migration
+
+To import your existing local JSON files into a new user account:
+```bash
+# Inside the laravel container (or with APP_URL pointing at a running server)
+php artisan timetracker:import ./TimeTrackerSystem {USER_UUID}
+# --dry-run to preview counts without writing
+```
+
+Imports: `data-replicon.json` (or `data.json`), `data-contractor.json`, `data-contractor-clients.json`, `data-contractor-invoices.json`, `replicon-credentials.json`, `replicon-projects-cache.json`, `replicon-row-map.json`. Reuses existing UUIDs (Postgres is version-agnostic).
+
+### Production deployment
+
+- **Backend:** `fly deploy` from `backend/`. Fly app: `timetracker-api`, region `yyz`, scale-to-zero. Release command runs `php artisan migrate --force`.
+- **Frontend:** `fly deploy` from `frontend/`. Fly app: `timetracker-app`, region `yyz`, scale-to-zero. Multi-stage build: `nuxt generate` → nginx. `NUXT_PUBLIC_API_BASE` is a build arg baked into the JS bundle — set in `frontend/fly.toml` under `[build.args]`.
+- **Backend secrets:** `fly secrets set APP_KEY=... DB_HOST=... DB_PASSWORD=...` (see `docker-compose.prod.yml` header for the full list).
+- **Database:** Supabase `ca-central-1`, use pooler port 6543 (not 5432) to avoid connection exhaustion on Fly scale-to-zero.
+
+### How to make changes (new stack)
+
+**Backend:**
+1. Edit files in `backend/` — no build step
+2. `php artisan serve` (or let Docker do it) — changes hot-reload
+3. For new API endpoints: add migration → model → controller → route → resource
+4. Run `php artisan route:list` to verify
+
+**Frontend:**
+1. Edit files in `frontend/` — Nuxt HMR picks up changes instantly
+2. `npm run build` before merging to catch TypeScript errors
+3. New pages: create under `pages/`, Nuxt auto-registers them
+4. New stores: create under `stores/`, Pinia auto-imports via `@pinia/nuxt`
+
+### Open items (resolve before v3 launch)
+
+- [ ] Pick mail provider: Resend vs Postmark (Mailpit covers dev)
+- [x] Logo upload endpoint (`POST /api/contractor/company/logo`) — route + handler added in `CompanyController`
+- [ ] Split entry dialog — `RepliconSplitDialog` exists; contractor split (`ContractorSplitDialog`) not yet built; `openSplit` stubs remain in day.vue pages
+- [ ] Replicon PROJ mode — `RepliconProjectSelect` and `RepliconSubProjectSelect` components built; task `path[]` breadcrumbs in tooltips; full wiring in `RepliconEntryRowNew` / `RepliconEntryEditDialog` still in progress
+- [ ] `useShortcuts` keyboard shortcut `N` (focus new-entry row) — ref to new-row input needed from page level
+- [ ] Rate limits: bump `throttle:api` to `throttle:120,1` for the `auth:sanctum,verified` group before going live
+- [ ] Supabase RLS: not used (auth is in Laravel policies) — document this so future contributors don't add it accidentally
