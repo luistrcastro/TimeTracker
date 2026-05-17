@@ -431,12 +431,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_json({'ok': False, 'error': 'Projects not synced — run Sync first'})
             return
 
-        # Build (project_id, task_id) lookup keyed by (code, task_name) and (id, task_name)
+        # Build (project_id, task_id) lookup keyed by (code/id, task_name) and (code/id, task_id)
         id_lookup = {}
         for p in cache.get('projects', []):
             for t in p.get('tasks', []):
                 id_lookup[(p['code'], t['name'])] = (p['id'], t['id'])
                 id_lookup[(p['id'],   t['name'])] = (p['id'], t['id'])
+                id_lookup[(p['code'], t['id'])]   = (p['id'], t['id'])
+                id_lookup[(p['id'],   t['id'])]   = (p['id'], t['id'])
 
         # Column: days since Saturday (Sat=0, Sun=1, Mon=2, … Fri=6)
         date      = datetime.strptime(date_str, '%Y-%m-%d')
