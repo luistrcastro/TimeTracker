@@ -4,9 +4,9 @@
     <v-card-text>
       <v-row dense>
         <v-col cols="12" sm="4">
-          <AutocompleteInput
+          <v-select
             v-model="form.clientName"
-            :suggestions="contractor.clientNames"
+            :items="contractor.clientNames"
             label="Client"
             variant="outlined"
             density="compact"
@@ -27,6 +27,10 @@
       </v-row>
 
       <v-btn variant="outlined" size="small" class="mb-3" @click="loadEntries">Load Uninvoiced Entries</v-btn>
+
+      <v-alert v-if="feedback" :type="feedback.type" density="compact" variant="tonal" class="mb-3">
+        {{ feedback.text }}
+      </v-alert>
 
       <template v-if="uninvoiced.length">
         <div class="d-flex justify-space-between align-center mb-1">
@@ -90,6 +94,7 @@ const { minutesToDecimal } = useTimeFormat()
 const creating = ref(false)
 const uninvoiced = ref<TimeEntry[]>([])
 const selected = ref(new Set<string>())
+const feedback = ref<{ type: 'error' | 'info'; text: string } | null>(null)
 
 const today = new Date().toISOString().slice(0, 10)
 const form = reactive({
@@ -109,13 +114,21 @@ watch(() => contractor.company, (c) => {
   if (!form.taxRate) form.taxRate = c.defaultTaxRate
 })
 
+watch(() => form.clientName, () => {
+  if (feedback.value?.type === 'error') feedback.value = null
+})
+
 const allSelected = computed(() =>
   uninvoiced.value.length > 0 && uninvoiced.value.every(e => selected.value.has(e.id))
 )
 
 async function loadEntries() {
+  feedback.value = null
   const client = contractor.clients.find(c => c.name === form.clientName)
-  if (!client) return
+  if (!client) {
+    feedback.value = { type: 'error', text: 'Please select a client first.' }
+    return
+  }
 
   uninvoiced.value = contractor.entries.filter(e => {
     if (e.clientId !== client.id) return false
@@ -124,6 +137,10 @@ async function loadEntries() {
     if (form.dateTo && e.date > form.dateTo) return false
     return true
   }).sort((a, b) => a.date > b.date ? 1 : -1)
+
+  if (!uninvoiced.value.length) {
+    feedback.value = { type: 'info', text: 'No uninvoiced entries found for this client.' }
+  }
 
   selected.value = new Set(uninvoiced.value.map(e => e.id))
 }

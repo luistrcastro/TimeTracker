@@ -5,7 +5,7 @@
       <thead>
         <tr>
           <th>Number</th><th>Client</th><th>Date</th><th>Due</th>
-          <th>Total</th><th>Status</th><th></th>
+          <th>Total</th><th>Status</th><th style="width:1%"></th>
         </tr>
       </thead>
       <tbody>
@@ -23,8 +23,9 @@
               {{ inv.status }}
             </v-chip>
           </td>
-          <td>
+          <td class="d-flex align-center gap-1" style="white-space:nowrap">
             <v-btn size="x-small" variant="text" @click="$emit('view', inv.id)">View</v-btn>
+            <v-btn size="x-small" variant="text" icon="mdi-file-pdf-box" :loading="downloading === inv.id" @click="downloadPdf(inv)" />
           </td>
         </tr>
       </tbody>
@@ -39,11 +40,31 @@ defineProps<{ invoices: Invoice[] }>()
 defineEmits<{ view: [id: string] }>()
 
 const contractor = useContractorStore()
+const auth = useAuthStore()
+const { public: { apiBase } } = useRuntimeConfig()
+const downloading = ref<string | null>(null)
 
 const clientName = (id: string) =>
   contractor.clients.find(c => c.id === id)?.name ?? id
 
 function statusColor(status: string) {
   return ({ draft: 'default', sent: 'blue', paid: 'success', void: 'error' } as Record<string, string>)[status] ?? 'default'
+}
+
+async function downloadPdf(inv: Invoice) {
+  downloading.value = inv.id
+  try {
+    const url = `${apiBase}/api/contractor/invoices/${inv.id}/pdf`
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${auth.token ?? ''}` } })
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    const cd = res.headers.get('Content-Disposition') ?? ''
+    const match = cd.match(/filename="([^"]+)"/)
+    a.download = match?.[1] ?? `${inv.number}.pdf`
+    a.click()
+  } finally {
+    downloading.value = null
+  }
 }
 </script>

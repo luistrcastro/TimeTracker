@@ -67,6 +67,7 @@ class ClientsController extends Controller
         ]);
 
         if (isset($data['tasks'])) {
+            $client->tasks()->whereNotIn('name', $data['tasks'])->delete();
             foreach ($data['tasks'] as $taskName) {
                 $client->tasks()->firstOrCreate(['name' => $taskName]);
             }

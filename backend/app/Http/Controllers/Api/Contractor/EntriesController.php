@@ -25,6 +25,7 @@ class EntriesController extends Controller
     {
         $data = $request->validate([
             'clientId'        => ['nullable', 'uuid', 'exists:clients,id'],
+            'clientTaskId'    => ['nullable', 'uuid', 'exists:client_tasks,id'],
             'task'            => ['nullable', 'string', 'max:255'],
             'description'     => ['required', 'string', 'max:500'],
             'subDescription'  => ['nullable', 'string', 'max:500'],
@@ -32,11 +33,11 @@ class EntriesController extends Controller
             'start'           => ['nullable', 'date_format:H:i'],
             'finish'          => ['nullable', 'date_format:H:i'],
             'durationMinutes' => ['required', 'integer', 'min:0'],
-            'invoiced'        => ['boolean'],
         ]);
 
         $entry = ContractorTimeEntry::create([
             'client_id'        => $data['clientId'] ?? null,
+            'client_task_id'   => $data['clientTaskId'] ?? null,
             'task'             => $data['task'] ?? '',
             'description'      => $data['description'],
             'sub_description'  => $data['subDescription'] ?? '',
@@ -44,7 +45,6 @@ class EntriesController extends Controller
             'start'            => $data['start'] ?? null,
             'finish'           => $data['finish'] ?? null,
             'duration_minutes' => $data['durationMinutes'],
-            'invoiced'         => $data['invoiced'] ?? false,
         ]);
 
         return new ContractorTimeEntryResource($entry);
@@ -59,6 +59,7 @@ class EntriesController extends Controller
     {
         $data = $request->validate([
             'clientId'        => ['nullable', 'uuid', 'exists:clients,id'],
+            'clientTaskId'    => ['nullable', 'uuid', 'exists:client_tasks,id'],
             'task'            => ['nullable', 'string', 'max:255'],
             'description'     => ['sometimes', 'required', 'string', 'max:500'],
             'subDescription'  => ['nullable', 'string', 'max:500'],
@@ -69,14 +70,15 @@ class EntriesController extends Controller
         ]);
 
         $entry->update([
-            'client_id'        => array_key_exists('clientId', $data) ? $data['clientId'] : $entry->client_id,
-            'task'             => $data['task'] ?? $entry->task,
-            'description'      => $data['description'] ?? $entry->description,
-            'sub_description'  => $data['subDescription'] ?? $entry->sub_description,
-            'date'             => $data['date'] ?? $entry->date,
-            'start'            => $data['start'] ?? $entry->start,
-            'finish'           => $data['finish'] ?? $entry->finish,
-            'duration_minutes' => $data['durationMinutes'] ?? $entry->duration_minutes,
+            'client_id'        => array_key_exists('clientId', $data)     ? $data['clientId']     : $entry->client_id,
+            'client_task_id'   => array_key_exists('clientTaskId', $data)  ? $data['clientTaskId'] : $entry->client_task_id,
+            'task'             => $data['task']             ?? $entry->task,
+            'description'      => $data['description']      ?? $entry->description,
+            'sub_description'  => $data['subDescription']   ?? $entry->sub_description,
+            'date'             => $data['date']              ?? $entry->date,
+            'start'            => $data['start']             ?? $entry->start,
+            'finish'           => $data['finish']            ?? $entry->finish,
+            'duration_minutes' => $data['durationMinutes']   ?? $entry->duration_minutes,
         ]);
 
         return new ContractorTimeEntryResource($entry->fresh());

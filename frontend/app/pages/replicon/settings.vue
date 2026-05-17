@@ -21,7 +21,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="primary" @click="ui.jiraPattern = jiraPattern">Save</v-btn>
+        <v-btn color="primary" @click="saveJira">Save</v-btn>
       </v-card-actions>
     </v-card>
   </div>
@@ -33,7 +33,12 @@ const replicon = useRepliconStore()
 
 useShortcuts()
 
-const jiraPattern = ref(ui.jiraPattern)
+const jiraPattern = ref(replicon.jiraPattern)
+
+async function saveJira() {
+  replicon.jiraPattern = jiraPattern.value
+  await replicon.saveCustomization()
+}
 
 onMounted(async () => {
   await Promise.all([replicon.loadCredentials(), replicon.loadProjects(), replicon.loadRowMap()])

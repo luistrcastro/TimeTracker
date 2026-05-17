@@ -25,6 +25,7 @@ class ProjectsCacheController extends Controller
                         'id'             => $t->id,
                         'repliconTaskId' => $t->replicon_task_id,
                         'name'           => $t->name,
+                        'path'           => $t->path ?? [],
                     ]),
                 ];
             });

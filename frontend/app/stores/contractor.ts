@@ -1,8 +1,9 @@
-import type { Client, CompanySetting, Invoice, TimeEntry } from '~/types'
+import type { Client, CompanySetting, Invoice, TimeEntry, UserCustomization } from '~/types'
 
 export const useContractorStore = defineStore('contractor', {
   state: () => ({
     entries: [] as TimeEntry[],
+    jiraPattern: 'PROJ-\\d+',
     clients: [] as Client[],
     invoices: [] as Invoice[],
     company: null as CompanySetting | null,
@@ -83,6 +84,7 @@ export const useContractorStore = defineStore('contractor', {
     toApiPayload(entry: Partial<TimeEntry>): Record<string, unknown> {
       return {
         clientId:        entry.clientId ?? null,
+        clientTaskId:    entry.clientTaskId ?? null,
         task:            entry.task ?? '',
         description:     entry.description ?? '',
         subDescription:  entry.subDescription ?? '',
@@ -90,7 +92,6 @@ export const useContractorStore = defineStore('contractor', {
         start:           entry.start || null,
         finish:          entry.finish || null,
         durationMinutes: entry.durationMinutes ?? 0,
-        invoiced:        entry.invoiced ?? false,
       }
     },
 
@@ -107,6 +108,14 @@ export const useContractorStore = defineStore('contractor', {
     async loadCompany() {
       const api = useApi()
       this.company = await api<CompanySetting>('/api/contractor/company') as CompanySetting
+    },
+
+    loadCustomization(data: UserCustomization) {
+      this.jiraPattern = data.contractor.jiraPattern
+    },
+    async saveCustomization() {
+      const { save } = useUserCustomization()
+      await save({ contractor: { jiraPattern: this.jiraPattern } })
     },
   },
 })

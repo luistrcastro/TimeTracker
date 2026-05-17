@@ -55,7 +55,7 @@ class InvoicesController extends Controller
 
         ContractorTimeEntry::whereIn('id', $data['entryIds'])
             ->where('user_id', auth()->id())
-            ->update(['invoiced' => true, 'invoice_id' => $invoice->id]);
+            ->update(['invoice_id' => $invoice->id]);
 
         return new InvoiceResource($invoice->load('timeEntries'));
     }
@@ -75,7 +75,7 @@ class InvoicesController extends Controller
         $newStatus = InvoiceStatus::from($data['status']);
 
         if ($newStatus === InvoiceStatus::Void && $invoice->status !== InvoiceStatus::Void) {
-            $invoice->timeEntries()->update(['invoiced' => false, 'invoice_id' => null]);
+            $invoice->timeEntries()->update(['invoice_id' => null]);
         }
 
         $invoice->update([
@@ -88,7 +88,7 @@ class InvoicesController extends Controller
 
     public function destroy(Invoice $invoice): JsonResponse
     {
-        $invoice->timeEntries()->update(['invoiced' => false, 'invoice_id' => null]);
+        $invoice->timeEntries()->update(['invoice_id' => null]);
         $invoice->delete();
         return response()->json(null, 204);
     }

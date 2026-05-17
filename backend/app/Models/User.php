@@ -24,4 +24,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
         ];
     }
+
+    public function companySetting()
+    {
+        return $this->hasOne(CompanySetting::class)->withoutGlobalScopes();
+    }
 }

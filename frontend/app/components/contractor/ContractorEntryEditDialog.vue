@@ -5,16 +5,30 @@
       <v-card-text>
         <v-row dense>
           <v-col cols="6">
-            <AutocompleteInput
-              v-model="form.clientName"
-              :suggestions="clientNames"
+            <v-select
+              v-model="form.clientId"
+              :items="contractor.clients"
+              item-title="name"
+              item-value="id"
               label="Client"
               variant="outlined"
               density="compact"
+              clearable
+              @update:model-value="form.taskId = null"
             />
           </v-col>
           <v-col cols="6">
-            <v-text-field v-model="form.task" label="Task" variant="outlined" density="compact" />
+            <v-select
+              v-model="form.taskId"
+              :items="taskOptions"
+              item-title="name"
+              item-value="id"
+              label="Task"
+              variant="outlined"
+              density="compact"
+              clearable
+              :disabled="!taskOptions.length"
+            />
           </v-col>
           <v-col cols="12">
             <v-text-field
@@ -32,14 +46,13 @@
             <v-text-field v-model="form.start" type="time" label="Start" variant="outlined" density="compact" @input="calcDuration" />
           </v-col>
           <v-col cols="4">
-            <v-text-field v-model="form.finish" type="time" label="Finish" variant="outlined" density="compact" @input="onFinishChange" />
+            <v-text-field v-model="form.finish" type="time" label="Finish" variant="outlined" density="compact" @input="calcDuration" />
           </v-col>
           <v-col cols="4">
             <v-text-field :model-value="form.duration" label="Duration" variant="outlined" density="compact" readonly />
           </v-col>
         </v-row>
 
-        <!-- Cascade -->
         <div v-if="cascadeCount !== null" class="mt-2">
           <v-btn
             :disabled="cascadeCount === 0"
@@ -67,44 +80,42 @@ import type { TimeEntry } from '~/types'
 const props = defineProps<{
   modelValue: boolean
   entry: TimeEntry | null
-  clients: { id: string; name: string }[]
-  entries?: TimeEntry[]
 }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [boolean]
-  saved: [entry: Partial<TimeEntry> & { id: string }]
-}>()
+const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
 
 const contractor = useContractorStore()
-
-const allEntries = computed(() => props.entries ?? contractor.entries)
 
 const model = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
 })
 
-const clientNames = computed(() => props.clients.map(c => c.name))
+const taskOptions = computed(() =>
+  contractor.clients.find(c => c.id === form.clientId)?.tasks ?? []
+)
 
 const originalFinish = ref('')
+
 const form = reactive({
-  clientName: '',
-  task: '',
-  description: '',
+  clientId: null as string | null,
+  taskId:   null as string | null,
+  description:    '',
   subDescription: '',
-  date: '',
-  start: '',
-  finish: '',
+  date:     '',
+  start:    '',
+  finish:   '',
   duration: '0:00',
   durationMinutes: 0,
 })
 
 watch(() => props.entry, (e) => {
   if (!e) return
-  const client = props.clients.find(c => c.id === e.clientId)
-  form.clientName     = client?.name ?? e.project ?? ''
-  form.task           = e.task ?? e.subProject ?? ''
+  const client = contractor.clients.find(c => c.id === e.clientId)
+  const task   = client?.tasks?.find(t => t.id === e.clientTaskId) ??
+                 client?.tasks?.find(t => t.name === (e.task ?? ''))
+  form.clientId       = client?.id ?? null
+  form.taskId         = task?.id ?? null
   form.description    = e.description
   form.subDescription = e.subDescription ?? ''
   form.date           = e.date
@@ -122,12 +133,9 @@ const cascadeDelta = computed(() => {
 
 const cascadeCount = computed(() => {
   if (!originalFinish.value || cascadeDelta.value === 0) return null
-  const affected = allEntries.value.filter(e =>
-    e.date === form.date &&
-    e.id !== props.entry?.id &&
-    e.start && e.start >= originalFinish.value
-  )
-  return affected.length
+  return contractor.entries.filter(e =>
+    e.date === form.date && e.id !== props.entry?.id && e.start && e.start >= originalFinish.value
+  ).length
 })
 
 function timeToMinutes(hhmm: string) {
@@ -153,20 +161,29 @@ function calcDuration() {
   form.duration = '0:00'
 }
 
-function onFinishChange() {
-  calcDuration()
-}
-
 async function save(cascade: boolean) {
   if (!props.entry) return
-  const client = props.clients.find(c => c.name === form.clientName)
 
-  const updated: Partial<TimeEntry> & { id: string } = {
-    id:              props.entry.id,
-    clientId:        client?.id ?? props.entry.clientId,
-    task:            form.task,
-    project:         form.clientName,
-    subProject:      form.task,
+  const task = contractor.clients
+    .find(c => c.id === form.clientId)?.tasks
+    ?.find(t => t.id === form.taskId)
+
+  if (cascade && cascadeDelta.value !== 0) {
+    const affected = contractor.entries.filter(e =>
+      e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
+    )
+    for (const ae of affected) {
+      await contractor.update(ae.id, {
+        start:  minutesToHHMM(timeToMinutes(ae.start!) + cascadeDelta.value),
+        finish: ae.finish ? minutesToHHMM(timeToMinutes(ae.finish) + cascadeDelta.value) : ae.finish,
+      })
+    }
+  }
+
+  await contractor.update(props.entry.id, {
+    clientId:        form.clientId,
+    clientTaskId:    form.taskId,
+    task:            task?.name ?? props.entry.task ?? '',
     description:     form.description,
     subDescription:  form.subDescription,
     date:            form.date,
@@ -174,19 +191,8 @@ async function save(cascade: boolean) {
     finish:          form.finish,
     duration:        form.duration,
     durationMinutes: form.durationMinutes,
-  }
+  })
 
-  if (cascade && cascadeDelta.value !== 0) {
-    const affected = allEntries.value.filter(e =>
-      e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
-    )
-    for (const ae of affected) {
-      const newStart  = minutesToHHMM(timeToMinutes(ae.start!) + cascadeDelta.value)
-      const newFinish = ae.finish ? minutesToHHMM(timeToMinutes(ae.finish) + cascadeDelta.value) : ae.finish
-      await contractor.update(ae.id, { start: newStart, finish: newFinish })
-    }
-  }
-
-  emit('saved', updated)
+  model.value = false
 }
 </script>

@@ -13,10 +13,15 @@ class RepliconTimeEntry extends Model
     use BelongsToUser, HasDuration, HasTimeWindow, HasUuidV7;
 
     protected $fillable = [
-        'date', 'project', 'sub_project', 'description',
+        'date', 'project', 'sub_project', 'replicon_task_id', 'description',
         'sub_description', 'further_info', 'start', 'finish',
         'duration_minutes', 'logged',
     ];
+
+    public function repliconTask()
+    {
+        return $this->belongsTo(RepliconTask::class);
+    }
 
     protected function casts(): array
     {

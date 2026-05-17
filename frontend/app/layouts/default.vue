@@ -70,6 +70,7 @@ watch(() => ui.use12h, updateClock)
 onMounted(() => {
   updateClock()
   clockTimer = setInterval(updateClock, 1000)
+  ui.initTheme()
   const vuetify = (nuxtApp as any).$vuetify
   if (vuetify) vuetify.theme.global.name.value = ui.theme
 })

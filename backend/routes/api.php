@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Replicon\ProjectsCacheController;
 use App\Http\Controllers\Api\Replicon\RowMapController;
 use App\Http\Controllers\Api\Replicon\SubmitController;
 use App\Http\Controllers\Api\Replicon\SyncController;
+use App\Http\Controllers\Api\UserCustomizationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register',        [RegisterController::class, 'store']);
@@ -40,8 +41,13 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::apiResource('contractor/clients',  ClientsController::class);
     Route::apiResource('contractor/invoices', InvoicesController::class);
     Route::get('contractor/invoices/{invoice}/pdf', [InvoicesController::class, 'pdf']);
-    Route::get('contractor/company', [CompanyController::class, 'show']);
-    Route::put('contractor/company', [CompanyController::class, 'update']);
+    Route::get ('contractor/company',      [CompanyController::class, 'show']);
+    Route::put ('contractor/company',      [CompanyController::class, 'update']);
+    Route::post('contractor/company/logo', [CompanyController::class, 'uploadLogo']);
+
+    // User customization
+    Route::get('user/customization', [UserCustomizationController::class, 'show']);
+    Route::put('user/customization', [UserCustomizationController::class, 'update']);
 
     // Replicon — Phase 5
     Route::apiResource('replicon/entries', RepliconEntriesController::class);

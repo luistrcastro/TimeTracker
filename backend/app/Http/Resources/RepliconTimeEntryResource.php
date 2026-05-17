@@ -14,6 +14,7 @@ class RepliconTimeEntryResource extends JsonResource
             'date'           => $this->date?->format('Y-m-d'),
             'project'        => $this->project,
             'subProject'     => $this->sub_project,
+            'repliconTaskId' => $this->replicon_task_id,
             'description'    => $this->description,
             'subDescription' => $this->sub_description,
             'furtherInfo'    => $this->further_info,

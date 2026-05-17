@@ -1,6 +1,8 @@
 <template>
   <div>
     <div class="text-h6 mb-4">Settings</div>
+    <CompanySettingsCard class="mb-4" />
+    <ClientDetailsCard class="mb-4" />
 
     <!-- Jira pattern -->
     <v-card variant="outlined" class="mb-4">
@@ -34,9 +36,6 @@
         </label>
       </v-card-text>
     </v-card>
-
-    <CompanySettingsCard />
-    <ClientDetailsCard />
   </div>
 </template>
 
@@ -46,9 +45,12 @@ const contractor = useContractorStore()
 
 useShortcuts()
 
-const jiraPattern = ref(ui.jiraPattern)
+const jiraPattern = ref(contractor.jiraPattern)
 
-function saveJira() { ui.jiraPattern = jiraPattern.value }
+async function saveJira() {
+  contractor.jiraPattern = jiraPattern.value
+  await contractor.saveCustomization()
+}
 
 function exportJson() {
   const blob = new Blob([JSON.stringify(contractor.entries, null, 2)], { type: 'application/json' })

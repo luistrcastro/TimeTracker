@@ -7,6 +7,7 @@ export function useGapOverlap() {
   function detectGapsAndOverlaps(entries: TimeEntry[]) {
     const gaps: GapRow[] = []
     const overlaps = new Set<string>()
+    const overlapFinish = new Set<string>()
 
     const withTimes = entries
       .filter(e => e.start && e.finish)
@@ -23,10 +24,11 @@ export function useGapOverlap() {
       } else if (currFinishMin > nextStartMin) {
         overlaps.add(curr.id)
         overlaps.add(next.id)
+        overlapFinish.add(curr.id)
       }
     }
 
-    return { gaps, overlaps }
+    return { gaps, overlaps, overlapFinish }
   }
 
   function timeToMinutes(hhmm: string): number {

@@ -12,6 +12,7 @@ class ContractorTimeEntryResource extends JsonResource
         return [
             'id'             => $this->id,
             'clientId'       => $this->client_id,
+            'clientTaskId'   => $this->client_task_id,
             'invoiceId'      => $this->invoice_id,
             'task'           => $this->task,
             'description'    => $this->description,
@@ -21,7 +22,7 @@ class ContractorTimeEntryResource extends JsonResource
             'finish'         => $this->finish ? substr($this->finish, 0, 5) : null,
             'duration'        => $this->durationAsHHMM(),
             'durationMinutes' => $this->duration_minutes,
-            'invoiced'        => $this->invoiced,
+            'invoiced'        => $this->invoice_id !== null,
         ];
     }
 }

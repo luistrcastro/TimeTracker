@@ -41,7 +41,7 @@
               :ripple="true"
               @click="go('contractor')"
             >
-              <v-icon size="48" color="secondary" class="mb-3">mdi-briefcase-outline</v-icon>
+              <v-icon size="48" color="#6D3B2E" class="mb-3">mdi-briefcase-outline</v-icon>
               <div class="text-subtitle-1 font-weight-semibold">Contractor</div>
               <div class="text-caption text-medium-emphasis mt-1">Invoicing & clients</div>
             </v-card>

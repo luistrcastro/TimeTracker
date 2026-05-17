@@ -3,6 +3,7 @@ export interface TimeEntry {
   date: string
   project?: string
   subProject?: string
+  repliconTaskId?: string | null
   description: string
   subDescription?: string
   furtherInfo?: string
@@ -12,7 +13,8 @@ export interface TimeEntry {
   durationMinutes: number
   logged?: boolean
   invoiced?: boolean
-  clientId?: string
+  clientId?: string | null
+  clientTaskId?: string | null
   task?: string
   invoiceId?: string | null
 }
@@ -24,7 +26,7 @@ export interface Client {
   address?: string
   phone?: string
   email?: string
-  tasks?: string[]
+  tasks?: { id: string; name: string }[]
 }
 
 export interface Invoice {
@@ -63,4 +65,20 @@ export interface User {
 export interface AuthState {
   token: string | null
   user: User | null
+}
+
+export interface UserCustomizationUi {
+  theme: 'light' | 'dark'
+  use12h: boolean
+  activeVariant: 'replicon' | 'contractor'
+}
+
+export interface UserCustomizationModule {
+  jiraPattern: string
+}
+
+export interface UserCustomization {
+  ui: UserCustomizationUi
+  replicon: UserCustomizationModule
+  contractor: UserCustomizationModule
 }

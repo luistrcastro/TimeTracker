@@ -16,7 +16,7 @@ class ClientResource extends JsonResource
             'address'   => $this->address,
             'phone'     => $this->phone,
             'email'     => $this->email,
-            'tasks'     => $this->whenLoaded('tasks', fn() => $this->tasks->pluck('name')),
+            'tasks'     => $this->whenLoaded('tasks', fn() => $this->tasks->map(fn($t) => ['id' => $t->id, 'name' => $t->name])->values()),
         ];
     }
 }

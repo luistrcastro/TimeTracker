@@ -27,6 +27,7 @@ class EntriesController extends Controller
             'date'           => ['required', 'date_format:Y-m-d'],
             'project'        => ['nullable', 'string', 'max:255'],
             'subProject'     => ['nullable', 'string', 'max:255'],
+            'repliconTaskId' => ['nullable', 'uuid', 'exists:replicon_tasks,id'],
             'description'    => ['required', 'string', 'max:500'],
             'subDescription' => ['nullable', 'string', 'max:500'],
             'furtherInfo'    => ['nullable', 'string', 'max:500'],
@@ -37,16 +38,17 @@ class EntriesController extends Controller
         ]);
 
         $entry = RepliconTimeEntry::create([
-            'date'            => $data['date'],
-            'project'         => $data['project'] ?? '',
-            'sub_project'     => $data['subProject'] ?? '',
-            'description'     => $data['description'],
-            'sub_description' => $data['subDescription'] ?? '',
-            'further_info'    => $data['furtherInfo'] ?? '',
-            'start'           => $data['start'] ?? null,
-            'finish'          => $data['finish'] ?? null,
-            'duration_minutes'=> $data['durationMinutes'],
-            'logged'          => $data['logged'] ?? false,
+            'date'             => $data['date'],
+            'project'          => $data['project'] ?? '',
+            'sub_project'      => $data['subProject'] ?? '',
+            'replicon_task_id' => $data['repliconTaskId'] ?? null,
+            'description'      => $data['description'],
+            'sub_description'  => $data['subDescription'] ?? '',
+            'further_info'     => $data['furtherInfo'] ?? '',
+            'start'            => $data['start'] ?? null,
+            'finish'           => $data['finish'] ?? null,
+            'duration_minutes' => $data['durationMinutes'],
+            'logged'           => $data['logged'] ?? false,
         ]);
 
         return new RepliconTimeEntryResource($entry);
@@ -63,6 +65,7 @@ class EntriesController extends Controller
             'date'           => ['sometimes', 'date_format:Y-m-d'],
             'project'        => ['nullable', 'string', 'max:255'],
             'subProject'     => ['nullable', 'string', 'max:255'],
+            'repliconTaskId' => ['nullable', 'uuid', 'exists:replicon_tasks,id'],
             'description'    => ['sometimes', 'required', 'string', 'max:500'],
             'subDescription' => ['nullable', 'string', 'max:500'],
             'furtherInfo'    => ['nullable', 'string', 'max:500'],
@@ -73,16 +76,17 @@ class EntriesController extends Controller
         ]);
 
         $entry->update([
-            'date'            => $data['date']            ?? $entry->date,
-            'project'         => $data['project']         ?? $entry->project,
-            'sub_project'     => $data['subProject']      ?? $entry->sub_project,
-            'description'     => $data['description']     ?? $entry->description,
-            'sub_description' => $data['subDescription']  ?? $entry->sub_description,
-            'further_info'    => $data['furtherInfo']     ?? $entry->further_info,
-            'start'           => $data['start']           ?? $entry->start,
-            'finish'          => $data['finish']          ?? $entry->finish,
-            'duration_minutes'=> $data['durationMinutes'] ?? $entry->duration_minutes,
-            'logged'          => $data['logged']          ?? $entry->logged,
+            'date'             => $data['date']            ?? $entry->date,
+            'project'          => $data['project']         ?? $entry->project,
+            'sub_project'      => $data['subProject']      ?? $entry->sub_project,
+            'replicon_task_id' => array_key_exists('repliconTaskId', $data) ? $data['repliconTaskId'] : $entry->replicon_task_id,
+            'description'      => $data['description']     ?? $entry->description,
+            'sub_description'  => $data['subDescription']  ?? $entry->sub_description,
+            'further_info'     => $data['furtherInfo']     ?? $entry->further_info,
+            'start'            => $data['start']           ?? $entry->start,
+            'finish'           => $data['finish']          ?? $entry->finish,
+            'duration_minutes' => $data['durationMinutes'] ?? $entry->duration_minutes,
+            'logged'           => $data['logged']          ?? $entry->logged,
         ]);
 
         return new RepliconTimeEntryResource($entry->fresh());

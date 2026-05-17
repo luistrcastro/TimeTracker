@@ -15,13 +15,14 @@
             variant="outlined"
             density="compact"
             placeholder="https://your-company.replicon.com"
+            :error-messages="errors.base_url"
           />
         </v-col>
         <v-col cols="12" sm="6">
-          <v-text-field v-model="form.session_id" label="Session ID" variant="outlined" density="compact" />
+          <v-text-field v-model="form.session_id" label="Session ID" variant="outlined" density="compact" :error-messages="errors.session_id" />
         </v-col>
         <v-col cols="12" sm="6">
-          <v-text-field v-model="form.server_view_state_id" label="Server View State ID" variant="outlined" density="compact" />
+          <v-text-field v-model="form.server_view_state_id" label="Server View State ID" variant="outlined" density="compact" :error-messages="errors.server_view_state_id" />
         </v-col>
         <v-col cols="12">
           <v-text-field
@@ -30,6 +31,7 @@
             variant="outlined"
             density="compact"
             :placeholder="replicon.credentials?.cookie_set ? '(unchanged)' : 'Paste full Cookie header'"
+            :error-messages="errors.cookie_header"
           />
         </v-col>
       </v-row>
@@ -64,6 +66,7 @@ const { public: { apiBase } } = useRuntimeConfig()
 const saving = ref(false)
 const saved = ref(false)
 const refreshing = ref(false)
+const errors = ref<Record<string, string[]>>({})
 
 const form = reactive({
   base_url: '',
@@ -133,6 +136,7 @@ async function refresh() {
 
 async function save() {
   saving.value = true
+  errors.value = {}
   try {
     await replicon.saveCredentials({
       base_url:             form.base_url,
@@ -142,6 +146,8 @@ async function save() {
     })
     saved.value = true
     form.cookie_header = ''
+  } catch (e: any) {
+    errors.value = e?.data?.errors ?? {}
   } finally {
     saving.value = false
   }

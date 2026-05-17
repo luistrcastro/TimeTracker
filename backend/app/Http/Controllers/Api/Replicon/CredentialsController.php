@@ -28,8 +28,13 @@ class CredentialsController extends Controller
             'base_url'             => ['required', 'url'],
             'session_id'           => ['nullable', 'string'],
             'server_view_state_id' => ['nullable', 'string'],
-            'cookie_header'        => ['required', 'string'],
+            'cookie_header'        => ['nullable', 'string'],
         ]);
+
+        // Blank cookie_header means "keep existing" — don't overwrite with null
+        if (empty($data['cookie_header'])) {
+            unset($data['cookie_header']);
+        }
 
         $cred = RepliconCredential::updateOrCreate(
             ['user_id' => auth()->id()],
@@ -44,13 +49,27 @@ class CredentialsController extends Controller
             'base_url'             => $cred->base_url,
             'server_view_state_id' => $cred->server_view_state_id,
             'session_id'           => $cred->session_id,
-            'cookie_set'           => true,
+            'cookie_set'           => (bool) $cred->cookie_header,
         ]);
     }
 
     public function destroy(): JsonResponse
     {
-        RepliconCredential::where('user_id', auth()->id())->delete();
-        return response()->json(null, 204);
+        RepliconCredential::where('user_id', auth()->id())->update([
+            'session_id'           => null,
+            'server_view_state_id' => null,
+            'cookie_header'        => null,
+            'expires_at'           => null,
+        ]);
+
+        $cred = RepliconCredential::where('user_id', auth()->id())->first();
+
+        return response()->json([
+            'configured'           => (bool) $cred,
+            'base_url'             => $cred?->base_url ?? '',
+            'server_view_state_id' => '',
+            'session_id'           => '',
+            'cookie_set'           => false,
+        ]);
     }
 }

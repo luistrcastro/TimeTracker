@@ -1,26 +1,21 @@
 <template>
   <tr class="new-row">
     <td>
-      <AutocompleteInput
-        v-model="form.clientName"
-        :suggestions="clients"
-        density="compact"
+      <RepliconProjectSelect
+        v-model="form.projectId"
         variant="underlined"
-        placeholder="Client"
+        placeholder="Project"
         hide-details
-        @keydown.enter.prevent="focusNext('task')"
+        @update:model-value="form.taskId = null"
       />
     </td>
     <td>
-      <AutocompleteInput
-        v-model="form.task"
-        :suggestions="taskSuggestionsForClient"
-        density="compact"
+      <RepliconSubProjectSelect
+        v-model="form.taskId"
+        :project-id="form.projectId"
         variant="underlined"
-        placeholder="Task"
+        placeholder="Sub-project"
         hide-details
-        ref="taskRef"
-        @keydown.enter.prevent="focusNext('desc')"
       />
     </td>
     <td>
@@ -72,51 +67,47 @@
     <td></td>
     <td></td>
     <td>
-      <v-btn size="x-small" color="primary" icon="mdi-check" @click="save" :disabled="!canSave" />
+      <v-btn size="x-small" color="primary" :disabled="!canSave" @click="save" >Save</v-btn>
+      <v-btn size="x-small" variant="text" @click="clear(null)">Clear</v-btn>
     </td>
   </tr>
 </template>
 
 <script setup lang="ts">
-import type { TimeEntry } from '~/types'
+interface PrefillData { projectId: string | null; taskId: string | null; description: string; subDescription: string }
+const props = defineProps<{ prefillStart: string; prefill?: PrefillData | null }>()
 
-const props = defineProps<{
-  clients: string[]
-  tasks: string[]
-  prefillStart: string
-}>()
-
-const emit = defineEmits<{ save: [entry: Partial<TimeEntry>] }>()
-
+const replicon = useRepliconStore()
 const ui = useUiStore()
 
-const taskRef = ref()
 const descRef = ref()
 const subdescRef = ref()
 const startRef = ref()
 const finishRef = ref()
 
 const form = reactive({
-  clientName: '',
-  task: '',
-  description: '',
+  projectId: null as string | null,
+  taskId:    null as string | null,
+  description:    '',
   subDescription: '',
-  start: '',
-  finish: '',
+  start:    '',
+  finish:   '',
   duration: '0:00',
   durationMinutes: 0,
 })
 
-// Populate task suggestions filtered to selected client — or all tasks
-const taskSuggestionsForClient = computed(() => props.tasks)
-
 watch(() => props.prefillStart, (v) => { if (!form.start) form.start = v })
+watch(() => props.prefill, (p) => {
+  if (!p) return
+  form.projectId      = p.projectId
+  form.taskId         = p.taskId
+  form.description    = p.description
+  form.subDescription = p.subDescription
+})
 
 function calcDuration() {
   if (form.start && form.finish) {
-    const startMins = timeToMinutes(form.start)
-    const finishMins = timeToMinutes(form.finish)
-    const diff = finishMins - startMins
+    const diff = timeToMinutes(form.finish) - timeToMinutes(form.start)
     if (diff > 0) {
       form.durationMinutes = diff
       form.duration = `${Math.floor(diff / 60)}:${String(diff % 60).padStart(2, '0')}`
@@ -135,38 +126,44 @@ function timeToMinutes(hhmm: string) {
 const canSave = computed(() => !!form.description && !!form.start && !!form.finish)
 
 function focusNext(field: string) {
-  const map: Record<string, any> = {
-    task: taskRef, desc: descRef, subdesc: subdescRef,
-    start: startRef, finish: finishRef,
-  }
-  const el = map[field]?.value?.$el?.querySelector('input')
-  el?.focus()
+  const map: Record<string, any> = { subdesc: subdescRef, start: startRef, finish: finishRef }
+  map[field]?.value?.$el?.querySelector('input')?.focus()
 }
 
 async function save() {
   if (!canSave.value) return
-  emit('save', {
-    clientId:        undefined, // resolved by parent via client name
-    clientName:      form.clientName,
-    task:            form.task,
+
+  const project = replicon.projects.find(p => p.id === form.projectId)
+  const task    = project?.tasks.find(t => t.id === form.taskId)
+
+  await replicon.create({
+    date:            ui.currentDate,
+    project:         project?.code ?? '',
+    subProject:      task?.name ?? '',
+    repliconTaskId:  form.taskId ?? null,
     description:     form.description,
     subDescription:  form.subDescription,
-    date:            ui.currentDate,
     start:           form.start,
     finish:          form.finish,
     duration:        form.duration,
     durationMinutes: form.durationMinutes,
-    invoiced:        false,
-  } as Partial<TimeEntry> & { clientName: string })
+    logged:          false,
+  })
 
-  const savedFinish = form.finish
-  form.clientName = ''
-  form.task = ''
-  form.description = ''
+  clear(form.finish)
+}
+
+function clear(startTime: string|null) {
+  const nextStart = !!startTime
+    ? startTime
+    : (props.prefillStart || form.start)
+  form.projectId      = null
+  form.taskId         = null
+  form.description    = ''
   form.subDescription = ''
-  form.start = savedFinish
-  form.finish = ''
-  form.duration = '0:00'
+  form.start          = nextStart
+  form.finish         = ''
+  form.duration       = '0:00'
   form.durationMinutes = 0
 }
 </script>

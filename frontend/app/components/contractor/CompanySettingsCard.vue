@@ -1,5 +1,5 @@
 <template>
-  <v-card variant="outlined" class="mb-4">
+  <v-card variant="outlined">
     <v-card-title>Company &amp; Invoicing Defaults</v-card-title>
     <v-card-text>
       <v-row dense>

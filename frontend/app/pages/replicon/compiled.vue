@@ -1,11 +1,9 @@
 <template>
   <div>
-    <div class="d-flex align-center gap-2 mb-4">
-      <span class="font-weight-medium">{{ ui.currentDate }} — Replicon Compiled</span>
-      <v-chip :color="replicon.credsOk ? 'success' : 'warning'" size="x-small" variant="tonal">
+    <DateNavBar class="mb-4">
+      <v-chip :color="replicon.credsOk ? 'success' : 'warning'" size="x-small" variant="tonal" class="mr-2">
         {{ replicon.credsOk ? 'Credentials OK' : 'Credentials not set' }}
       </v-chip>
-      <v-spacer />
       <v-btn class="mr-2" size="small" variant="outlined" prepend-icon="mdi-content-copy" @click="copyAll">Copy All</v-btn>
       <v-btn
         size="small" color="primary" prepend-icon="mdi-send"
@@ -13,7 +11,7 @@
         :disabled="!replicon.credsOk || !compiledRows.length"
         @click="submit"
       >Submit to Replicon</v-btn>
-    </div>
+    </DateNavBar>
 
     <v-table density="compact">
       <thead>

@@ -1,3 +1,7 @@
+import type { UserCustomization } from '~/types'
+
+let _uiSaveTimer: ReturnType<typeof setTimeout> | null = null
+
 export const useUiStore = defineStore('ui', {
   state: () => ({
     theme: 'light' as 'light' | 'dark',
@@ -12,9 +16,18 @@ export const useUiStore = defineStore('ui', {
   actions: {
     toggleTheme() {
       this.theme = this.theme === 'light' ? 'dark' : 'light'
+      this._debouncedSave()
+    },
+    initTheme() {
+      const stored = localStorage.getItem('tt_ui')
+      const persisted = stored ? JSON.parse(stored) : null
+      if (!persisted?.theme) {
+        this.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
     },
     toggleTimeFormat() {
       this.use12h = !this.use12h
+      this._debouncedSave()
     },
     setDate(date: string) {
       this.currentDate = date
@@ -29,6 +42,19 @@ export const useUiStore = defineStore('ui', {
       } else {
         this.sortCol = null; this.sortDir = null
       }
+    },
+    loadFromServer(data: UserCustomization) {
+      this.theme         = data.ui.theme
+      this.use12h        = data.ui.use12h
+      this.activeVariant = data.ui.activeVariant
+    },
+    async saveToServer() {
+      const { save } = useUserCustomization()
+      await save({ ui: { theme: this.theme, use12h: this.use12h, activeVariant: this.activeVariant } })
+    },
+    _debouncedSave() {
+      if (_uiSaveTimer) clearTimeout(_uiSaveTimer)
+      _uiSaveTimer = setTimeout(() => this.saveToServer(), 800)
     },
   },
 

@@ -5,7 +5,7 @@
         {{ inv.number }}
         <v-chip :color="statusColor(inv.status)" size="small" variant="tonal">{{ inv.status }}</v-chip>
         <v-spacer />
-        <v-btn icon="mdi-printer" variant="text" size="small" @click="downloadPdf" />
+        <v-btn icon="mdi-file-pdf-box" variant="text" size="small" @click="downloadPdf" />
       </v-card-title>
 
       <v-card-text>
@@ -59,9 +59,6 @@
               density="compact"
             />
           </v-col>
-          <v-col cols="6" class="d-flex align-end">
-            <v-btn color="primary" size="small" :loading="saving" @click="saveStatus">Save Status</v-btn>
-          </v-col>
         </v-row>
 
         <div v-if="inv.notes" class="mt-2 text-caption text-medium-emphasis">{{ inv.notes }}</div>
@@ -73,6 +70,7 @@
         </v-btn>
         <v-spacer />
         <v-btn variant="text" @click="model = false">Close</v-btn>
+        <v-btn color="primary" :loading="saving" @click="saveStatus">Save Status</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

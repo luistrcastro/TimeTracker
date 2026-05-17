@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CompanySettingResource;
 use App\Models\CompanySetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CompanyController extends Controller
 {
@@ -42,6 +44,31 @@ class CompanyController extends Controller
                 'default_tax_rate' => $data['defaultTaxRate']  ?? 0,
             ]
         );
+
+        return new CompanySettingResource($setting);
+    }
+
+    public function uploadLogo(Request $request): CompanySettingResource
+    {
+        $request->validate([
+            'logo' => ['required', 'file', 'image', 'max:512'],
+        ]);
+
+        $setting = CompanySetting::firstOrCreate(
+            ['user_id' => auth()->id()],
+            ['name' => '', 'address' => '', 'phone' => '', 'email' => '',
+             'default_rate' => 0, 'default_tax_rate' => 0]
+        );
+
+        if ($setting->logo_path) {
+            Storage::disk()->delete($setting->logo_path);
+        }
+
+        $ext  = $request->file('logo')->getClientOriginalExtension();
+        $path = 'logos/' . auth()->id() . '/' . Str::uuid() . '.' . $ext;
+        Storage::disk()->put($path, file_get_contents($request->file('logo')->getRealPath()));
+
+        $setting->update(['logo_path' => $path]);
 
         return new CompanySettingResource($setting);
     }

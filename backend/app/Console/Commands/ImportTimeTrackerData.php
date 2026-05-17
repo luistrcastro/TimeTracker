@@ -138,7 +138,6 @@ class ImportTimeTrackerData extends Command
                             'start'           => $this->normalizeTime($row['start'] ?? null),
                             'finish'          => $this->normalizeTime($row['finish'] ?? null),
                             'duration_minutes'=> $durationMins,
-                            'invoiced'        => (bool) ($row['invoiced'] ?? false),
                         ]
                     );
                 }
@@ -227,7 +226,7 @@ class ImportTimeTrackerData extends Command
                     if (! empty($inv['entryIds'])) {
                         ContractorTimeEntry::whereIn('id', $inv['entryIds'])
                             ->where('user_id', $userId)
-                            ->update(['invoice_id' => $invoice->id, 'invoiced' => true]);
+                            ->update(['invoice_id' => $invoice->id]);
                     }
                 }
                 $count++;

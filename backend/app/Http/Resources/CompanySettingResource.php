@@ -15,7 +15,7 @@ class CompanySettingResource extends JsonResource
             'phone'          => $this->phone,
             'email'          => $this->email,
             'logoUrl'        => $this->logo_path
-                ? \Storage::disk('supabase')->temporaryUrl($this->logo_path, now()->addMinutes(10))
+                ? \Storage::disk()->temporaryUrl($this->logo_path, now()->addMinutes(10))
                 : null,
             'defaultRate'    => $this->default_rate,
             'defaultTaxRate' => $this->default_tax_rate,

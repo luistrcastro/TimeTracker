@@ -1,10 +1,8 @@
 <template>
   <div>
-    <div class="d-flex align-center gap-2 mb-4">
-      <span class="font-weight-medium">{{ ui.currentDate }} — Compiled View</span>
-      <v-spacer />
+    <DateNavBar class="mb-4">
       <v-btn size="small" variant="outlined" prepend-icon="mdi-content-copy" @click="copyAll">Copy All</v-btn>
-    </div>
+    </DateNavBar>
 
     <v-table density="compact">
       <thead>

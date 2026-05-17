@@ -1,11 +1,11 @@
-import type { TimeEntry } from '~/types'
+import type { TimeEntry, UserCustomization } from '~/types'
 
 export interface RepliconProject {
   id: string
   repliconId: string
   code: string
   name: string
-  tasks: Array<{ id: string; repliconTaskId: string; name: string }>
+  tasks: Array<{ id: string; repliconTaskId: string; name: string; path: string[] }>
 }
 
 export interface RepliconCredentials {
@@ -19,6 +19,7 @@ export interface RepliconCredentials {
 export const useRepliconStore = defineStore('replicon', {
   state: () => ({
     entries: [] as TimeEntry[],
+    jiraPattern: 'PROJ-\\d+',
     credentials: null as RepliconCredentials | null,
     projects: [] as RepliconProject[],
     rowMap: {} as Record<string, number>,
@@ -107,18 +108,19 @@ export const useRepliconStore = defineStore('replicon', {
     },
 
     toApiPayload(entry: Partial<TimeEntry>): Record<string, unknown> {
-      return {
-        date:            entry.date,
-        project:         entry.project ?? '',
-        subProject:      entry.subProject ?? '',
-        description:     entry.description ?? '',
-        subDescription:  entry.subDescription ?? '',
-        furtherInfo:     entry.furtherInfo ?? '',
-        start:           entry.start || null,
-        finish:          entry.finish || null,
-        durationMinutes: entry.durationMinutes ?? 0,
-        logged:          entry.logged ?? false,
-      }
+      const p: Record<string, unknown> = {}
+      if ('date'            in entry) p.date            = entry.date
+      if ('project'         in entry) p.project         = entry.project ?? ''
+      if ('subProject'      in entry) p.subProject      = entry.subProject ?? ''
+      if ('repliconTaskId'  in entry) p.repliconTaskId  = entry.repliconTaskId ?? null
+      if ('description'     in entry) p.description     = entry.description ?? ''
+      if ('subDescription'  in entry) p.subDescription  = entry.subDescription ?? ''
+      if ('furtherInfo'     in entry) p.furtherInfo     = entry.furtherInfo ?? ''
+      if ('start'           in entry) p.start           = entry.start || null
+      if ('finish'          in entry) p.finish          = entry.finish || null
+      if ('durationMinutes' in entry) p.durationMinutes = entry.durationMinutes ?? 0
+      if ('logged'          in entry) p.logged          = entry.logged ?? false
+      return p
     },
 
     async loadCredentials() {
@@ -138,8 +140,8 @@ export const useRepliconStore = defineStore('replicon', {
 
     async deleteCredentials() {
       const api = useApi()
-      await api('/api/replicon/credentials', { method: 'DELETE' })
-      this.credentials = null
+      const data = await api<RepliconCredentials>('/api/replicon/credentials', { method: 'DELETE' }) as RepliconCredentials
+      this.credentials = data
       this.credsOk = false
     },
 
@@ -185,6 +187,14 @@ export const useRepliconStore = defineStore('replicon', {
       }) as any
       this.submitResults = result.results ?? []
       return this.submitResults
+    },
+
+    loadCustomization(data: UserCustomization) {
+      this.jiraPattern = data.replicon.jiraPattern
+    },
+    async saveCustomization() {
+      const { save } = useUserCustomization()
+      await save({ replicon: { jiraPattern: this.jiraPattern } })
     },
   },
 })

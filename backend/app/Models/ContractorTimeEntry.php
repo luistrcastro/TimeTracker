@@ -13,22 +13,25 @@ class ContractorTimeEntry extends Model
     use BelongsToUser, HasDuration, HasTimeWindow, HasUuidV7;
 
     protected $fillable = [
-        'client_id', 'invoice_id', 'task', 'description',
-        'sub_description', 'date', 'start', 'finish',
-        'duration_minutes', 'invoiced',
+        'client_id', 'invoice_id', 'client_task_id', 'task', 'description',
+        'sub_description', 'date', 'start', 'finish', 'duration_minutes',
     ];
 
     protected function casts(): array
     {
         return [
-            'date'     => 'date:Y-m-d',
-            'invoiced' => 'boolean',
+            'date' => 'date:Y-m-d',
         ];
     }
 
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function clientTask()
+    {
+        return $this->belongsTo(ClientTask::class);
     }
 
     public function invoice()
