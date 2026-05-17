@@ -1,4 +1,4 @@
-app = "timetracker-api"
+app = "timetracker-api-lqdb8q"
 primary_region = "yyz"
 
 [build]

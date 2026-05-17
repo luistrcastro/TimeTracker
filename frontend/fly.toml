@@ -1,11 +1,11 @@
-app = "timetracker-app"
+app = "time-tracker-app"
 primary_region = "yyz"
 
 [build]
   dockerfile = "Dockerfile"
 
   [build.args]
-    NUXT_PUBLIC_API_BASE = "https://timetracker-api.fly.dev"
+    NUXT_PUBLIC_API_BASE = "https://timetracker-api-lqdb8q.fly.dev"
 
 [http_service]
   internal_port = 80
