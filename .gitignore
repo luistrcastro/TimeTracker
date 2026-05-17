@@ -1,14 +1,4 @@
-# ── Legacy TimeTrackerSystem ────────────────────────────────────────────────
-TimeTrackerSystem/replicon-credentials.json
-TimeTrackerSystem/replicon-projects-cache.json
-TimeTrackerSystem/replicon-row-map.json
-TimeTrackerSystem/data-replicon.json
-TimeTrackerSystem/data-contractor.json
-TimeTrackerSystem/data-contractor-invoices.json
-TimeTrackerSystem/data-contractor-clients.json
-TimeTrackerSystem/data.json
-
-# ── Legacy data directory ────────────────────────────────────────────────────
+# ── Local data ───────────────────────────────────────────────────────────────
 data/backup/
 data/*
 

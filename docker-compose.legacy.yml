@@ -1,8 +1,0 @@
-services:
-  timetracker:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./data:/data
-      - ./TimeTrackerSystem:/app:ro

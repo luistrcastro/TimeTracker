@@ -55,7 +55,7 @@ Open http://localhost:3000/register. The verification email lands in Mailpit at 
 
 - [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/) authenticated (`fly auth login`)
 - Supabase project (database + file storage)
-- A transactional mail provider (Resend or Postmark)
+- Resend account with an API key (`re_...`)
 
 ### Backend — Fly.io (`timetracker-api`)
 
@@ -77,17 +77,17 @@ fly secrets set \
   DB_DATABASE=postgres \
   DB_USERNAME="postgres.your-project-ref" \
   DB_PASSWORD="your-supabase-db-password" \
-  MAIL_MAILER=smtp \
+  MAIL_MAILER="smtp" \
   MAIL_HOST="smtp.resend.com" \
-  MAIL_PORT=587 \
-  MAIL_USERNAME=resend \
-  MAIL_PASSWORD="re_xxxx..." \
-  MAIL_FROM_ADDRESS="noreply@yourdomain.com" \
-  AWS_ACCESS_KEY_ID="your-supabase-s3-key-id" \
-  AWS_SECRET_ACCESS_KEY="your-supabase-s3-secret" \
-  AWS_BUCKET="company-logos" \
-  AWS_ENDPOINT="https://your-project-ref.supabase.co/storage/v1/s3" \
-  AWS_USE_PATH_STYLE_ENDPOINT=true
+  MAIL_PORT="587" \
+  MAIL_USERNAME="resend" \
+  MAIL_PASSWORD="re_REPLACE_ME" \
+  MAIL_FROM_ADDRESS="noreply@REPLACE_ME" \
+  SUPABASE_S3_KEY="your-supabase-s3-access-key-id" \
+  SUPABASE_S3_SECRET="your-supabase-s3-secret" \
+  SUPABASE_S3_BUCKET="company-logos" \
+  SUPABASE_S3_ENDPOINT="https://your-project-ref.supabase.co/storage/v1/s3" \
+  ALLOWED_ORIGINS="https://timetracker-app.fly.dev"
 
 fly deploy
 ```
@@ -107,7 +107,7 @@ cd frontend
 fly deploy
 ```
 
-**Subsequent deploys** (both apps):
+**Subsequent deploys (both apps):**
 
 ```bash
 cd backend  && fly deploy
@@ -118,7 +118,7 @@ cd frontend && fly deploy
 
 ## Migrating data from the legacy app
 
-The `timetracker:import` command reads the JSON files from `TimeTrackerSystem/` and writes them into the database for a given user account.
+The `timetracker:import` command reads legacy JSON files and writes them into the database for a given user account.
 
 **What gets imported:**
 
@@ -141,20 +141,25 @@ Existing UUIDs are reused. Running the import twice is safe — duplicates are s
 docker compose exec laravel \
   php artisan tinker --execute="echo \App\Models\User::where('email', 'you@example.com')->value('id');"
 
+# Copy your legacy JSON files into backend/ (the directory mounted in the container)
+cp /path/to/legacy/data-*.json backend/
+
 # Dry run first
 docker compose exec laravel \
-  php artisan timetracker:import /app/TimeTrackerSystem {USER_UUID} --dry-run
+  php artisan timetracker:import /app {USER_UUID} --dry-run
 
 # Run for real
 docker compose exec laravel \
-  php artisan timetracker:import /app/TimeTrackerSystem {USER_UUID}
-```
+  php artisan timetracker:import /app {USER_UUID}
 
-Note: the container mounts `backend/` as `/app` — it cannot see `TimeTrackerSystem/` directly. See the production instructions below; the same workaround applies here.
+# Clean up
+rm -f backend/data-*.json backend/replicon-credentials.json \
+       backend/replicon-projects-cache.json backend/replicon-row-map.json
+```
 
 ### Into the production database (Fly.io)
 
-The Fly machine scales to zero, so files uploaded via SSH won't persist. Instead, run the import locally using the dev container but pointed at Supabase.
+The Fly machine scales to zero, so files uploaded via SSH won't persist. Run the import locally using the dev container pointed at Supabase.
 
 **1. Register on the production app first, then get your UUID:**
 
@@ -163,13 +168,13 @@ fly ssh console -a timetracker-api \
   -C "php artisan tinker --execute=\"echo App\Models\User::where('email','you@example.com')->value('id');\""
 ```
 
-**2. Copy the legacy JSON files into `backend/`** (the only directory mounted in the container):
+**2. Copy your legacy JSON files into `backend/`:**
 
 ```bash
-cp TimeTrackerSystem/data-*.json backend/
-cp TimeTrackerSystem/replicon-credentials.json \
-   TimeTrackerSystem/replicon-projects-cache.json \
-   TimeTrackerSystem/replicon-row-map.json \
+cp /path/to/legacy/data-*.json backend/
+cp /path/to/legacy/replicon-credentials.json \
+   /path/to/legacy/replicon-projects-cache.json \
+   /path/to/legacy/replicon-row-map.json \
    backend/ 2>/dev/null || true
 ```
 
@@ -186,7 +191,7 @@ docker compose -f docker-compose.prod.yml exec \
   php artisan timetracker:import /app {USER_UUID} --dry-run
 ```
 
-Remove `--dry-run` once the counts look right. The `-e` flags override the DB connection for this one call only — your dev `.env` and dev database are untouched.
+Remove `--dry-run` once the counts look right.
 
 **4. Clean up:**
 
@@ -201,19 +206,11 @@ rm -f backend/data-*.json backend/replicon-credentials.json \
 
 ```
 backend/                    Laravel 12 API
-frontend/                   Nuxt 4 SPA (source under frontend/app/)
+frontend/                   Nuxt 4 SPA
 docker-compose.yml          Dev: postgres + mailpit + laravel + frontend
 docker-compose.prod.yml     Prod image smoke-test + Fly.io secrets reference
-docker-compose.legacy.yml   Legacy standalone Python app (TimeTrackerSystem)
-TimeTrackerSystem/          Legacy single-user app (archived)
-docs/                       replicon-api.md, history.md, running.md
+docs/                       replicon-api.md, history.md
 CLAUDE.md                   Full developer reference (architecture, schemas, decisions)
 ```
 
 For full architecture details, data schemas, API routes, and development decisions see [CLAUDE.md](CLAUDE.md).
-
----
-
-## Legacy app
-
-The original single-user Python + vanilla JS app lives in `TimeTrackerSystem/` and still works standalone. See [docs/running.md](docs/running.md) for instructions.
