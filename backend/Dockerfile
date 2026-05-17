@@ -53,5 +53,5 @@ WORKDIR /app
 RUN npm install puppeteer --prefix /app
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
-RUN php artisan optimize && php artisan event:cache
+RUN rm -f bootstrap/cache/*.php && php artisan optimize && php artisan event:cache
 EXPOSE 9000
