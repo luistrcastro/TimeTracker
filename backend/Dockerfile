@@ -58,7 +58,7 @@ COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh \
     && rm -f bootstrap/cache/*.php \
-    && php artisan optimize \
+    && php artisan route:cache \
     && php artisan event:cache
 EXPOSE 80
 CMD ["/start.sh"]
