@@ -1,3 +1,8 @@
+# fly.toml app configuration file generated for timetracker-api-lqdb8q on 2026-05-18T02:34:33Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = "timetracker-api-lqdb8q"
 primary_region = "yyz"
 
@@ -28,5 +33,5 @@ primary_region = "yyz"
     path = "/api/health"
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = 'shared-cpu-1x'
+  memory = '512mb'
