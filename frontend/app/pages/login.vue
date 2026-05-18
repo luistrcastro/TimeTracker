@@ -1,5 +1,10 @@
 <template>
   <v-card rounded="lg" elevation="2" class="pa-6">
+        <div class="auth-brand mb-6 text-center">
+          <v-icon class="auth-brand__icon mb-2" icon="mdi-timer-outline" size="48" color="#5b6af5" />
+          <div class="auth-brand__name">TimeTracker</div>
+          <div class="auth-brand__tagline">Track your work, own your time</div>
+        </div>
     <div class="text-h5 font-weight-bold mb-6">Sign in</div>
 
     <v-form @submit.prevent="submit" :disabled="loading">
