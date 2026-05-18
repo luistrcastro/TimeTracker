@@ -70,8 +70,8 @@ php artisan key:generate --show
 
 fly secrets set \
   APP_KEY="base64:xxxxx..." \
-  APP_URL="https://timetracker-api.fly.dev" \
-  FRONTEND_URL="https://timetracker-app.fly.dev" \
+  APP_URL="https://api.timetracker.space" \
+  FRONTEND_URL="https://app.timetracker.space" \
   DB_HOST="aws-0-ca-central-1.pooler.supabase.com" \
   DB_PORT=6543 \
   DB_DATABASE=postgres \
@@ -87,7 +87,7 @@ fly secrets set \
   SUPABASE_S3_SECRET="your-supabase-s3-secret" \
   SUPABASE_S3_BUCKET="company-logos" \
   SUPABASE_S3_ENDPOINT="https://your-project-ref.supabase.co/storage/v1/s3" \
-  ALLOWED_ORIGINS="https://timetracker-app.fly.dev"
+  ALLOWED_ORIGINS="https://app.timetracker.space"
 
 fly deploy
 ```

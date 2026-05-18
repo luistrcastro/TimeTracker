@@ -5,7 +5,7 @@ primary_region = "yyz"
   dockerfile = "Dockerfile"
 
   [build.args]
-    NUXT_PUBLIC_API_BASE = "https://timetracker-api-lqdb8q.fly.dev"
+    NUXT_PUBLIC_API_BASE = "https://api.timetracker.space"
 
 [http_service]
   internal_port = 80
