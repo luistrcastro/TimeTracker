@@ -60,5 +60,5 @@ RUN chmod +x /start.sh \
     && rm -f bootstrap/cache/*.php \
     && php artisan route:cache \
     && php artisan event:cache
-EXPOSE 80
+EXPOSE 8080
 CMD ["/start.sh"]

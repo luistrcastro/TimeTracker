@@ -13,7 +13,7 @@ primary_region = "yyz"
   BROWSERSHOT_CHROMIUM_PATH = "/usr/bin/chromium-browser"
 
 [http_service]
-  internal_port = 80
+  internal_port = 8080
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
@@ -21,7 +21,7 @@ primary_region = "yyz"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "10s"
+    grace_period = "30s"
     interval = "30s"
     method = "GET"
     timeout = "10s"
