@@ -77,6 +77,7 @@ export const useAuthStore = defineStore('auth', {
       const qs = new URLSearchParams(rest).toString()
       await $fetch(`${apiBase}/api/auth/verify-email/${id}/${hash}?${qs}`, {
         method: 'GET',
+        headers: { Accept: 'application/json' },
       })
       if (this.user) this.user.email_verified_at = new Date().toISOString()
     },

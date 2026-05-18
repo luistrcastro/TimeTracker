@@ -59,6 +59,8 @@ COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh \
     && rm -f bootstrap/cache/*.php \
     && php artisan route:cache \
-    && php artisan event:cache
+    && php artisan event:cache \
+    && chown -R www-data:www-data /app/storage /app/bootstrap/cache \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
 EXPOSE 8080
 CMD ["/start.sh"]

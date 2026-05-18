@@ -19,7 +19,8 @@
         @click:append-inner="showPassword = !showPassword"
       />
 
-      <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
+      <v-alert v-if="justVerified" type="success" class="mb-4" density="compact">Email verified! Sign in to continue.</v-alert>
+    <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
 
       <v-btn type="submit" color="primary" block size="large" :loading="loading">Sign in</v-btn>
     </v-form>
@@ -37,12 +38,14 @@ definePageMeta({ layout: 'auth' })
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
+const justVerified = computed(() => route.query.verified === '1')
 
 async function submit() {
   error.value = ''

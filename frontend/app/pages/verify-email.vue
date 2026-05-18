@@ -33,13 +33,24 @@ const verified = ref(false)
 const error = ref('')
 
 onMounted(async () => {
-  if (route.query.verified === '1') {
+  if (route.query.id && route.query.hash) {
+    loading.value = true
     try {
-      await auth.me()
+      const params: Record<string, string> = {}
+      for (const [k, v] of Object.entries(route.query)) {
+        if (v) params[k] = String(v)
+      }
+      await auth.verifyEmail(params)
       verified.value = true
-      setTimeout(() => router.push(`/${useUiStore().activeVariant}/day`), 1500)
+      if (auth.isLoggedIn) {
+        setTimeout(() => router.push(`/${useUiStore().activeVariant}/day`), 1500)
+      } else {
+        setTimeout(() => router.push('/login?verified=1'), 1500)
+      }
     } catch (e: any) {
       error.value = e?.data?.message ?? 'Verification failed'
+    } finally {
+      loading.value = false
     }
   }
 })

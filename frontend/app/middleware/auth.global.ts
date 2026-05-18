@@ -12,11 +12,11 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo('/login')
   }
 
-  if (auth.isLoggedIn && !auth.isVerified && !isPublic && to.path !== '/') {
+  if (auth.isLoggedIn && !auth.isVerified && !isPublic) {
     return navigateTo('/verify-email')
   }
 
-  if (auth.isLoggedIn && isPublic && to.path !== '/verify-email') {
+  if (auth.isLoggedIn && isPublic && (to.path !== '/verify-email' || auth.isVerified)) {
     return navigateTo(auth.isVerified ? '/' : '/verify-email')
   }
 })
