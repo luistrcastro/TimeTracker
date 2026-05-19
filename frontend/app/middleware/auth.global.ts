@@ -1,14 +1,15 @@
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
+  const path = to.path.replace(/\/$/, '') || '/'
 
   const publicRoutes = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password']
-  const isPublic = publicRoutes.some(r => to.path.startsWith(r))
+  const isPublic = publicRoutes.some(r => path.startsWith(r))
 
-  if (!auth.isLoggedIn && !isPublic && to.path !== '/') {
+  if (!auth.isLoggedIn && !isPublic && path !== '/') {
     return navigateTo('/login')
   }
 
-  if (!auth.isLoggedIn && to.path === '/') {
+  if (!auth.isLoggedIn && path === '/') {
     return navigateTo('/login')
   }
 
@@ -16,7 +17,7 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo('/verify-email')
   }
 
-  if (auth.isLoggedIn && isPublic && (to.path !== '/verify-email' || auth.isVerified)) {
+  if (auth.isLoggedIn && isPublic && (path !== '/verify-email' || auth.isVerified)) {
     return navigateTo(auth.isVerified ? '/' : '/verify-email')
   }
 })
