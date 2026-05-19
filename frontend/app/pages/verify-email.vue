@@ -32,7 +32,9 @@ const resent = ref(false)
 const verified = ref(false)
 const error = ref('')
 
-onMounted(async () => {
+async function handleQuery() {
+  if (loading.value) return
+
   if (route.query.id && route.query.hash) {
     loading.value = true
     try {
@@ -53,7 +55,6 @@ onMounted(async () => {
       loading.value = false
     }
   } else if (route.query.verified === '1') {
-    // Backend already verified the email and redirected here — refresh auth state
     loading.value = true
     try {
       await auth.me()
@@ -69,7 +70,9 @@ onMounted(async () => {
       loading.value = false
     }
   }
-})
+}
+
+watch(() => route.query, handleQuery, { immediate: true })
 
 async function resend() {
   error.value = ''
