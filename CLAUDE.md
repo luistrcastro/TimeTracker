@@ -67,7 +67,8 @@ app/
     Replicon/{Entries,Credentials,ProjectsCache,RowMap,Sync,Submit}Controller.php
     Contractor/{Entries,Clients,Invoices,Company}Controller.php
     UserCustomizationController.php
-  Http/Resources/               (JSON API shape for each entity)
+    UserProfileController.php
+  Http/Resources/               (JSON API shape for each entity; JsonResource::withoutWrapping() set globally)
   Jobs/SyncRepliconProjects.php
   Models/
     User.php
@@ -75,6 +76,7 @@ app/
     RepliconProject.php    RepliconTask.php  RepliconRowMap.php
     ContractorTimeEntry.php  Client.php  ClientTask.php
     Invoice.php  CompanySetting.php  UserCustomization.php
+    (User.php has avatar_path; fillable includes name, email, password, avatar_path)
     Concerns/{BelongsToUser,HasUuidV7,HasTimeWindow,HasDuration}.php
   Services/
     Replicon/{RepliconClient,RepliconSyncService,RepliconSubmitService}.php
@@ -95,6 +97,9 @@ routes/api.php
 - **`client_task_id`** nullable FK on `contractor_time_entries` — set when the selected task is a known `client_tasks` record.
 - **Company settings** are server-side (not localStorage).
 - **`User::companySetting()`** uses `->withoutGlobalScopes()` — required because `InvoicePdfService` runs outside an HTTP request context (no `auth()`) and the `BelongsToUser` global scope would otherwise return null.
+- **`UserResource`** is used for all user responses (`/me`, login, register, profile endpoints). It includes `avatar_url` as a 60-minute presigned Supabase Storage URL. `JsonResource::withoutWrapping()` is set in `AppServiceProvider` — resources are never wrapped in a `data` key.
+- **Avatar storage** follows the same pattern as company logos: stored at `avatars/{userId}/{uuid}.ext` in Supabase Storage (S3 disk), path saved in `users.avatar_path`. Old file deleted on upload or removal.
+- **Session expiry**: `users` table has no token expiry — Sanctum tokens are permanent until explicitly deleted (logout). "Keep me logged in" is frontend-only: a `sessionExpiry` timestamp stored in `tt_auth` localStorage, checked on app startup in `persist.client.ts`. If expired, `auth.logout()` is called (which deletes the token server-side) before anything else runs.
 
 ### User Customization (server-side prefs)
 
@@ -128,21 +133,28 @@ Full Replicon integration detail (credential files, PROJ mode, QueueRequests, ro
 
 ```
 nuxt.config.ts                 ssr:false, static preset, Vuetify plugin
+nginx.conf                     SPA static server; uses try_files $uri /index.html (no $uri/ — avoids trailing-slash 301s)
 app.vue
 plugins/
   vuetify.ts                   light/dark themes with primary=#5b6af5 in dark
-  persist.client.ts            on startup: auth.me() → load user customization → seed stores
-middleware/auth.global.ts      login → verify-email → app route guard
+  persist.client.ts            on startup: check sessionExpiry → auth.me() → load user customization → seed stores
+middleware/auth.global.ts      login → verify-email → app route guard (strips trailing slash from path before comparisons)
+layouts/
+  default.vue                  app shell only: app bar, clock, shortcuts dialog, account menu (no tabs)
+  module.vue                   thin wrapper: <NuxtLayout name="default"> + module tabs + <slot>
+  auth.vue                     centered card layout for login/register/etc.
 stores/
-  auth.ts                      token + user, persisted to localStorage (tt_auth)
-  ui.ts                        theme, use12h, currentDate, sortCol; changes debounce-save to server
+  auth.ts                      token + user + sessionExpiry, persisted to localStorage (tt_auth)
+                               login(email, password, keepLoggedIn=true) — sets sessionExpiry if keepLoggedIn=false
+                               profile actions: updateProfile, updatePassword, uploadAvatar, deleteAvatar
+  ui.ts                        theme, use12h, currentDate, sortCol, shortcutsDialog; changes debounce-save to server
   contractor.ts                entries + clients + invoices + company + jiraPattern
   replicon.ts                  entries + credentials + projects + rowMap + jiraPattern
 composables/
   useApi.ts                    $fetch wrapper, attaches Bearer, handles 401
   useTimeFormat.ts             formatTime (12/24h), minutesToHHMM, minutesToDecimal
   useGapOverlap.ts             detectGapsAndOverlaps
-  useShortcuts.ts              global keydown: ←/→/[/], T, 1-5, tab switch
+  useShortcuts.ts              global keydown: ←/→ (date nav), [ / ] (tab cycle), T (today), ? (shortcuts dialog)
   useUserCustomization.ts      load/save user prefs via GET|PUT /api/user/customization
 components/
   entries/   AutocompleteInput, CopyFromDayDialog
@@ -155,13 +167,17 @@ components/
   ui/          DateNavBar (prev/today/next nav + slot for actions)
 pages/
   login / register / verify-email / forgot-password / reset-password
-  replicon/{day,week,compiled,settings}
-  contractor/{day,week,compiled,invoicing,settings}
+  profile                      avatar upload, name change, password change (layout: default, title: 'Profile')
+  replicon/{day,week,compiled,settings}       (layout: module)
+  contractor/{day,week,compiled,invoicing,settings}  (layout: module)
 ```
 
 ### Key Frontend Constraints
 
 - `useShortcuts()` must be called inside `<script setup>` at the page level (not in layouts) to avoid duplicate listeners.
+- **Layout system**: `default.vue` is the app shell (no tabs). `module.vue` wraps `default` and adds tabs — all module pages use `definePageMeta({ layout: 'module' })`. Non-module authenticated pages (e.g. profile) use `definePageMeta({ layout: 'default', title: 'PageName' })`. The navbar reads `route.meta.title` for the third segment; falls back to path-based detection for module pages.
+- **Shortcuts**: `[` / `]` cycle tabs left/right. `←` / `→` navigate dates. `T` jumps to today. `?` toggles the shortcuts dialog. Digits `1-5` are NOT bound (they were removed to avoid conflicts with `v-autocomplete` inputs). `ui.shortcutsDialog` controls the dialog state.
+- **Project/sub-project selects** use `v-autocomplete` (not `v-select`) — supports free-text filtering.
 - `AutocompleteInput` uses `inheritAttrs: false` + `v-bind="$attrs"` so it accepts all `v-text-field` props.
 - Cascade in `EntryEditDialog`: delta = new finish − original finish; affects rows where `start >= originalFinish` on same day.
 - Acc Time is always computed chronologically, regardless of the current display sort.
@@ -172,6 +188,8 @@ pages/
 - `Client.tasks` is `{ id: string; name: string }[]` (not `string[]`) — task objects, not raw strings.
 - Entry-table logic (gap/overlap, acc time, sort) lives in the variant-specific `*DayEntryTable` components — do not put it in pages.
 - `toApiPayload()` in stores uses `'key' in entry` guards so partial PATCHes only send changed fields.
+- **Email verification**: `verify-email.vue` uses `watch(() => route.query, handleQuery, { immediate: true })` — NOT `onMounted` — so it fires both on fresh page loads AND when Vue Router reuses the component (same path, different query). The nginx config must NOT include `$uri/` in `try_files` to avoid trailing-slash 301s that strip query params.
+- **Account dropdown**: shows the user's avatar (`v-avatar`) when `auth.user.avatar_url` is set, falls back to `mdi-account-circle` icon. Includes a Profile link. Present in both `layouts/default.vue` and `pages/index.vue`.
 
 ---
 
@@ -200,6 +218,10 @@ GET|PUT              /api/contractor/company          [auth+verified]
 POST                 /api/contractor/company/logo     [auth+verified]
 
 GET|PUT              /api/user/customization          [auth+verified]
+PATCH                /api/user/profile                [auth+verified]
+PUT                  /api/user/password               [auth+verified]
+POST                 /api/user/avatar                 [auth+verified]
+DELETE               /api/user/avatar                 [auth+verified]
 
 GET /api/health
 ```
@@ -234,6 +256,12 @@ GET /api/health
 ## Open Items
 
 - [x] Mail provider: Resend (SMTP — `smtp.resend.com:587`, username `resend`)
+- [x] Account dropdown with user name/email and profile link
+- [x] User profile page — avatar upload (512KB), name change, password change
+- [x] "Keep me logged in" checkbox on login (unchecked = 2h frontend session expiry + server-side token deletion)
+- [x] Keyboard shortcuts help dialog (`?` key or toolbar icon)
+- [x] Tab navigation via `[` / `]`; project/sub-project selects use `v-autocomplete`
+- [x] Email verification fixed (nginx trailing-slash redirect + middleware path normalization + `watch` instead of `onMounted`)
 - [ ] Split entry dialog — `RepliconSplitDialog` exists; `ContractorSplitDialog` not yet built; `openSplit` stubs remain in day.vue pages
 - [ ] Replicon PROJ mode — `RepliconProjectSelect` and `RepliconSubProjectSelect` components built; full wiring in `RepliconEntryRowNew` / `RepliconEntryEditDialog` still in progress
 - [ ] `useShortcuts` keyboard shortcut `N` (focus new-entry row) — ref to new-row input needed from page level
