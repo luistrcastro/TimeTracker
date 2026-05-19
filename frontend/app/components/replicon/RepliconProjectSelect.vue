@@ -1,5 +1,5 @@
 <template>
-  <v-select
+  <v-autocomplete
     :model-value="modelValue"
     :items="projectOptions"
     item-title="label"
@@ -12,7 +12,7 @@
     <template #item="{ props, item }">
       <v-list-item v-bind="props" :subtitle="item.raw.name" />
     </template>
-  </v-select>
+  </v-autocomplete>
 </template>
 
 <script setup lang="ts">

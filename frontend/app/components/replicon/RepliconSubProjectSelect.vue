@@ -1,5 +1,5 @@
 <template>
-  <v-select
+  <v-autocomplete
     :model-value="modelValue"
     :items="taskOptions"
     item-title="name"
@@ -16,7 +16,7 @@
         :subtitle="item.raw.path?.length ? item.raw.path.join(' › ') : undefined"
       />
     </template>
-  </v-select>
+  </v-autocomplete>
 </template>
 
 <script setup lang="ts">
