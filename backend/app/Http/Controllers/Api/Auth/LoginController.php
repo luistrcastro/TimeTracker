@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,6 @@ class LoginController extends Controller
         $user  = Auth::user();
         $token = $user->createToken('spa')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user]);
+        return response()->json(['token' => $token, 'user' => new UserResource($user)]);
     }
 }

@@ -85,6 +85,43 @@ export const useAuthStore = defineStore('auth', {
       if (this.user) this.user.email_verified_at = new Date().toISOString()
     },
 
+    async updateProfile(name: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
+      this.user = await $fetch<User>(`${apiBase}/api/user/profile`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${this.token}` },
+        body: { name },
+      })
+    },
+
+    async updatePassword(currentPassword: string, password: string, passwordConfirmation: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
+      await $fetch(`${apiBase}/api/user/password`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${this.token}` },
+        body: { current_password: currentPassword, password, password_confirmation: passwordConfirmation },
+      })
+    },
+
+    async uploadAvatar(file: File) {
+      const { public: { apiBase } } = useRuntimeConfig()
+      const form = new FormData()
+      form.append('avatar', file)
+      this.user = await $fetch<User>(`${apiBase}/api/user/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.token}` },
+        body: form,
+      })
+    },
+
+    async deleteAvatar() {
+      const { public: { apiBase } } = useRuntimeConfig()
+      this.user = await $fetch<User>(`${apiBase}/api/user/avatar`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${this.token}` },
+      })
+    },
+
     async forgotPassword(email: string) {
       const { public: { apiBase } } = useRuntimeConfig()
       await $fetch(`${apiBase}/api/auth/forgot-password`, {

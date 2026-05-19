@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\Replicon\RowMapController;
 use App\Http\Controllers\Api\Replicon\SubmitController;
 use App\Http\Controllers\Api\Replicon\SyncController;
 use App\Http\Controllers\Api\UserCustomizationController;
+use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register',        [RegisterController::class, 'store']);
@@ -32,7 +34,7 @@ Route::get('/auth/verify-email/{id}/{hash}', VerifyEmailController::class)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/resend-verification', [ResendVerificationController::class, 'store']);
     Route::post('/auth/logout',              [LogoutController::class, 'destroy']);
-    Route::get('/me', fn () => response()->json(auth()->user()));
+    Route::get('/me', fn () => new UserResource(auth()->user()));
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
@@ -49,6 +51,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // User customization
     Route::get('user/customization', [UserCustomizationController::class, 'show']);
     Route::put('user/customization', [UserCustomizationController::class, 'update']);
+
+    // User profile
+    Route::patch('user/profile',        [UserProfileController::class, 'updateProfile']);
+    Route::put  ('user/password',       [UserProfileController::class, 'updatePassword']);
+    Route::post ('user/avatar',         [UserProfileController::class, 'uploadAvatar']);
+    Route::delete('user/avatar',        [UserProfileController::class, 'deleteAvatar']);
 
     // Replicon — Phase 5
     Route::apiResource('replicon/entries', RepliconEntriesController::class)->names('replicon.entries');

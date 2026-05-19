@@ -5,7 +5,7 @@
         <NuxtLink to="/" class="title-link text-decoration-none text-high-emphasis">
           <span class="font-weight-bold">Time Tracker</span>
         </NuxtLink>
-        <span class="text-medium-emphasis font-weight-regular"> | v{{ appVersion }} | {{ moduleLabel }}</span>
+        <span class="text-medium-emphasis font-weight-regular"> | v{{ appVersion }} | {{ pageLabel }}</span>
       </v-app-bar-title>
       <template #append>
         <span class="text-mono text-body-2 text-medium-emphasis mr-2" style="min-width:70px;text-align:right">{{ clock }}</span>
@@ -14,7 +14,10 @@
         <v-btn icon="mdi-keyboard-outline" @click="ui.shortcutsDialog = true" size="small" />
         <v-menu min-width="220" location="bottom end">
           <template #activator="{ props }">
-            <v-btn icon="mdi-account-circle" v-bind="props" size="small" />
+            <v-btn v-if="auth.user?.avatar_url" v-bind="props" icon size="small">
+              <v-avatar size="28" :image="auth.user.avatar_url" />
+            </v-btn>
+            <v-btn v-else icon="mdi-account-circle" v-bind="props" size="small" />
           </template>
           <v-list density="compact">
             <v-list-item>
@@ -22,6 +25,7 @@
               <v-list-item-subtitle>{{ auth.user?.email }}</v-list-item-subtitle>
             </v-list-item>
             <v-divider />
+            <v-list-item prepend-icon="mdi-account-edit-outline" title="Profile" :to="'/profile'" />
             <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="handleLogout" />
           </v-list>
         </v-menu>
@@ -30,9 +34,6 @@
 
     <v-main>
       <v-container fluid class="pa-4">
-        <v-tabs density="compact" class="mb-3">
-          <v-tab v-for="tab in pageTabs" :key="tab.to" :to="tab.to">{{ tab.label }}</v-tab>
-        </v-tabs>
         <slot />
       </v-container>
     </v-main>
@@ -76,19 +77,11 @@ const shortcuts = [
   { keys: ['?'],           desc: 'Show this help' },
 ]
 
-const isReplicon = computed(() => route.path.startsWith('/replicon'))
-const variant = computed(() => isReplicon.value ? 'replicon' : 'contractor')
-const moduleLabel = computed(() => isReplicon.value ? 'Replicon' : 'Contractor')
-
-const pageTabs = computed(() => {
-  const base = `/${variant.value}`
-  return [
-    { label: 'Day',      to: `${base}/day` },
-    { label: 'Week',     to: `${base}/week` },
-    { label: isReplicon.value ? 'Replicon' : 'Compiled', to: `${base}/compiled` },
-    ...(isReplicon.value ? [] : [{ label: 'Invoicing', to: `${base}/invoicing` }]),
-    { label: 'Settings', to: `${base}/settings` },
-  ]
+const pageLabel = computed(() => {
+  if (route.meta.title) return route.meta.title as string
+  if (route.path.startsWith('/replicon')) return 'Replicon'
+  if (route.path.startsWith('/contractor')) return 'Contractor'
+  return ''
 })
 
 // Live clock

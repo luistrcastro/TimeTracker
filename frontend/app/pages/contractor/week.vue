@@ -36,6 +36,8 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ layout: 'module' })
+
 import type { TimeEntry } from '~/types'
 
 const ui = useUiStore()

@@ -10,6 +10,8 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ layout: 'module' })
+
 const replicon = useRepliconStore()
 const ui = useUiStore()
 

@@ -10,7 +10,10 @@
         <v-btn :icon="ui.theme === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night'" @click="toggleTheme" size="small" />
         <v-menu min-width="220" location="bottom end">
           <template #activator="{ props }">
-            <v-btn icon="mdi-account-circle" v-bind="props" size="small" />
+            <v-btn v-if="auth.user?.avatar_url" v-bind="props" icon size="small">
+              <v-avatar size="28" :image="auth.user.avatar_url" />
+            </v-btn>
+            <v-btn v-else icon="mdi-account-circle" v-bind="props" size="small" />
           </template>
           <v-list density="compact">
             <v-list-item>
@@ -18,6 +21,7 @@
               <v-list-item-subtitle>{{ auth.user?.email }}</v-list-item-subtitle>
             </v-list-item>
             <v-divider />
+            <v-list-item prepend-icon="mdi-account-edit-outline" title="Profile" to="/profile" />
             <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="handleLogout" />
           </v-list>
         </v-menu>

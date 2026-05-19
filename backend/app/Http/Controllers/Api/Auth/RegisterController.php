@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,6 @@ class RegisterController extends Controller
 
         $token = $user->createToken('spa')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user], 201);
+        return response()->json(['token' => $token, 'user' => new UserResource($user)], 201);
     }
 }
