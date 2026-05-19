@@ -11,7 +11,19 @@
         <span class="text-mono text-body-2 text-medium-emphasis mr-2" style="min-width:70px;text-align:right">{{ clock }}</span>
         <v-btn :icon="ui.theme === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night'" @click="toggleTheme" size="small" />
         <v-btn :text="ui.use12h ? '12H' : '24H'" @click="ui.toggleTimeFormat()" variant="text" size="small" />
-        <v-btn icon="mdi-logout" @click="handleLogout" size="small" />
+        <v-menu min-width="220" location="bottom end">
+          <template #activator="{ props }">
+            <v-btn icon="mdi-account-circle" v-bind="props" size="small" />
+          </template>
+          <v-list density="compact">
+            <v-list-item>
+              <v-list-item-title class="font-weight-bold">{{ auth.user?.name }}</v-list-item-title>
+              <v-list-item-subtitle>{{ auth.user?.email }}</v-list-item-subtitle>
+            </v-list-item>
+            <v-divider />
+            <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="handleLogout" />
+          </v-list>
+        </v-menu>
       </template>
     </v-app-bar>
 

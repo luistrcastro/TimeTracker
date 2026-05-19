@@ -52,6 +52,22 @@ onMounted(async () => {
     } finally {
       loading.value = false
     }
+  } else if (route.query.verified === '1') {
+    // Backend already verified the email and redirected here — refresh auth state
+    loading.value = true
+    try {
+      await auth.me()
+      verified.value = true
+      if (auth.isLoggedIn && auth.isVerified) {
+        setTimeout(() => router.push(`/${useUiStore().activeVariant}/day`), 1500)
+      } else {
+        setTimeout(() => router.push('/login?verified=1'), 1500)
+      }
+    } catch (e: any) {
+      error.value = e?.data?.message ?? 'Verification failed'
+    } finally {
+      loading.value = false
+    }
   }
 })
 
