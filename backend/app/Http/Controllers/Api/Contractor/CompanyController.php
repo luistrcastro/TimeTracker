@@ -72,4 +72,20 @@ class CompanyController extends Controller
 
         return new CompanySettingResource($setting);
     }
+
+    public function deleteLogo(): CompanySettingResource
+    {
+        $setting = CompanySetting::firstOrCreate(
+            ['user_id' => auth()->id()],
+            ['name' => '', 'address' => '', 'phone' => '', 'email' => '',
+             'default_rate' => 0, 'default_tax_rate' => 0]
+        );
+
+        if ($setting->logo_path) {
+            Storage::disk()->delete($setting->logo_path);
+            $setting->update(['logo_path' => null]);
+        }
+
+        return new CompanySettingResource($setting);
+    }
 }

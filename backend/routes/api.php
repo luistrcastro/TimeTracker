@@ -43,7 +43,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('contractor/invoices/{invoice}/pdf', [InvoicesController::class, 'pdf']);
     Route::get ('contractor/company',      [CompanyController::class, 'show']);
     Route::put ('contractor/company',      [CompanyController::class, 'update']);
-    Route::post('contractor/company/logo', [CompanyController::class, 'uploadLogo']);
+    Route::post  ('contractor/company/logo', [CompanyController::class, 'uploadLogo']);
+    Route::delete('contractor/company/logo', [CompanyController::class, 'deleteLogo']);
 
     // User customization
     Route::get('user/customization', [UserCustomizationController::class, 'show']);

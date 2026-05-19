@@ -59,7 +59,6 @@ Backend: port 8020. Frontend: port 3000. Mailpit UI: port 8025.
 ```
 app/
   Console/Commands/
-    ImportTimeTrackerData.php    # timetracker:import {jsonDir} {userId} [--dry-run]
     PurgeExpiredRepliconCredentials.php  # replicon:purge-expired (scheduled every minute)
   Enums/InvoiceStatus.php
   Http/Controllers/Api/
@@ -204,27 +203,6 @@ GET|PUT              /api/user/customization          [auth+verified]
 
 GET /api/health
 ```
-
----
-
-## Data Migration (Legacy Import)
-
-To import existing local JSON files into a user account:
-
-```bash
-# Copy JSON files into backend/ (the directory mounted in the container)
-cp /path/to/legacy/data-*.json backend/
-
-# Inside the laravel container (dev db) or with prod DB env vars
-docker compose exec laravel php artisan timetracker:import /app {USER_UUID} --dry-run
-docker compose exec laravel php artisan timetracker:import /app {USER_UUID}
-
-rm -f backend/data-*.json backend/replicon-*.json
-```
-
-Imports: `data-replicon.json` (or `data.json`), `data-contractor.json`, `data-contractor-clients.json`, `data-contractor-invoices.json`, `replicon-credentials.json`, `replicon-projects-cache.json`, `replicon-row-map.json`. Reuses existing UUIDs. Running twice is safe — duplicates are skipped.
-
-See `README.md` for full instructions including production database import.
 
 ---
 
