@@ -1,5 +1,12 @@
 export default defineNuxtPlugin(async () => {
   const auth = useAuthStore()
+
+  if (auth.sessionExpiry && Date.now() > auth.sessionExpiry) {
+    auth.token = null
+    auth.user = null
+    auth.sessionExpiry = null
+  }
+
   await auth.me()
 
   if (auth.isLoggedIn && auth.isVerified) {

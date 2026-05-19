@@ -19,8 +19,10 @@
         @click:append-inner="showPassword = !showPassword"
       />
 
+      <v-checkbox v-model="keepLoggedIn" label="Keep me logged in" density="compact" class="mb-2" hide-details />
+
       <v-alert v-if="justVerified" type="success" class="mb-4" density="compact">Email verified! Sign in to continue.</v-alert>
-    <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
+      <v-alert v-if="error" type="error" class="mb-4" density="compact">{{ error }}</v-alert>
 
       <v-btn type="submit" color="primary" block size="large" :loading="loading">Sign in</v-btn>
     </v-form>
@@ -43,6 +45,7 @@ const route = useRoute()
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const keepLoggedIn = ref(true)
 const error = ref('')
 const loading = ref(false)
 const justVerified = computed(() => route.query.verified === '1')
@@ -51,7 +54,7 @@ async function submit() {
   error.value = ''
   loading.value = true
   try {
-    await auth.login(email.value, password.value)
+    await auth.login(email.value, password.value, keepLoggedIn.value)
     await router.push(auth.isVerified ? `/${useUiStore().activeVariant}/day` : '/verify-email')
   } catch (e: any) {
     error.value = e?.data?.message ?? 'Login failed'

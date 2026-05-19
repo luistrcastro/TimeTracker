@@ -4,6 +4,7 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: null as string | null,
     user: null as User | null,
+    sessionExpiry: null as number | null,
   }),
 
   getters: {
@@ -12,7 +13,7 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async login(email: string, password: string) {
+    async login(email: string, password: string, keepLoggedIn = true) {
       const { public: { apiBase } } = useRuntimeConfig()
       const data = await $fetch<{ token: string; user: User }>(`${apiBase}/api/auth/login`, {
         method: 'POST',
@@ -20,6 +21,7 @@ export const useAuthStore = defineStore('auth', {
       })
       this.token = data.token
       this.user = data.user
+      this.sessionExpiry = keepLoggedIn ? null : Date.now() + 2 * 60 * 60 * 1000
       return data
     },
 
@@ -44,6 +46,7 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.token = null
         this.user = null
+        this.sessionExpiry = null
       }
     },
 
@@ -101,7 +104,7 @@ export const useAuthStore = defineStore('auth', {
 
   persist: {
     storage: piniaPluginPersistedstate.localStorage(),
-    pick: ['token', 'user'],
+    pick: ['token', 'user', 'sessionExpiry'],
     key: 'tt_auth',
   },
 })
