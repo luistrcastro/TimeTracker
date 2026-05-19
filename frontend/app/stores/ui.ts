@@ -11,6 +11,7 @@ export const useUiStore = defineStore('ui', {
     sortDir: null as 'asc' | 'desc' | null,
     jiraPattern: 'PROJ-\\d+',
     activeVariant: 'replicon' as 'replicon' | 'contractor',
+    shortcutsDialog: false,
   }),
 
   actions: {

@@ -3,35 +3,53 @@ export function useShortcuts() {
   const router = useRouter()
   const route = useRoute()
 
+  function getTabs() {
+    const isReplicon = route.path.startsWith('/replicon')
+    const base = isReplicon ? '/replicon' : '/contractor'
+    return [
+      `${base}/day`,
+      `${base}/week`,
+      `${base}/compiled`,
+      ...(isReplicon ? [] : [`${base}/invoicing`]),
+      `${base}/settings`,
+    ]
+  }
+
   function handleKey(e: KeyboardEvent) {
     const tag = (e.target as HTMLElement)?.tagName
     const inInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)
     if (inInput) return
 
-    const variant = route.path.startsWith('/contractor') ? 'contractor' : 'replicon'
-
     switch (e.key) {
-      case 'ArrowLeft':
-      case '[': {
+      case 'ArrowLeft': {
         const d = new Date(ui.currentDate); d.setDate(d.getDate() - 1)
         ui.setDate(d.toISOString().slice(0, 10))
         break
       }
-      case 'ArrowRight':
-      case ']': {
+      case 'ArrowRight': {
         const d = new Date(ui.currentDate); d.setDate(d.getDate() + 1)
         ui.setDate(d.toISOString().slice(0, 10))
+        break
+      }
+      case '[': {
+        const tabs = getTabs()
+        const idx = tabs.indexOf(route.path)
+        if (idx > 0) router.push(tabs[idx - 1])
+        break
+      }
+      case ']': {
+        const tabs = getTabs()
+        const idx = tabs.indexOf(route.path)
+        if (idx !== -1 && idx < tabs.length - 1) router.push(tabs[idx + 1])
         break
       }
       case 't':
       case 'T':
         ui.setDate(new Date().toISOString().slice(0, 10))
         break
-      case '1': router.push(`/${variant}/day`); break
-      case '2': router.push(`/${variant}/week`); break
-      case '3': router.push(`/${variant}/compiled`); break
-      case '4': router.push(`/${variant}/settings`); break
-      case '5': if (variant === 'contractor') router.push('/contractor/invoicing'); break
+      case '?':
+        ui.shortcutsDialog = !ui.shortcutsDialog
+        break
     }
   }
 
