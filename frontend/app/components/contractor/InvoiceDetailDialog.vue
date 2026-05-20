@@ -5,7 +5,7 @@
         {{ inv.number }}
         <v-chip :color="statusColor(inv.status)" size="small" variant="tonal">{{ inv.status }}</v-chip>
         <v-spacer />
-        <v-btn icon="mdi-file-pdf-box" variant="text" size="small" @click="downloadPdf" />
+        <v-btn icon="mdi-file-pdf-box" variant="text" size="small" :loading="downloading" @click="downloadPdf" />
       </v-card-title>
 
       <v-card-text>
@@ -95,6 +95,7 @@ const model = computed({
 
 const saving = ref(false)
 const voiding = ref(false)
+const downloading = ref(false)
 const newStatus = ref<string>('draft')
 
 const inv = computed<Invoice | null>(() =>
@@ -147,16 +148,21 @@ async function voidInvoice() {
 
 async function downloadPdf() {
   if (!inv.value) return
-  const url = `${apiBase}/api/contractor/invoices/${inv.value.id}/pdf`
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${auth.token ?? ''}` },
-  })
-  const blob = await res.blob()
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  const cd = res.headers.get('Content-Disposition') ?? ''
-  const match = cd.match(/filename="([^"]+)"/)
-  a.download = match?.[1] ?? `${inv.value.number}.pdf`
-  a.click()
+  downloading.value = true
+  try {
+    const url = `${apiBase}/api/contractor/invoices/${inv.value.id}/pdf`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${auth.token ?? ''}` },
+    })
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    const cd = res.headers.get('Content-Disposition') ?? ''
+    const match = cd.match(/filename="([^"]+)"/)
+    a.download = match?.[1] ?? `${inv.value.number}.pdf`
+    a.click()
+  } finally {
+    downloading.value = false
+  }
 }
 </script>

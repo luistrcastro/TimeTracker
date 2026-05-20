@@ -69,14 +69,14 @@
 
 <div style="padding:0 24px">
   <table class="entries">
-    <thead><tr><th>Date</th><th>Description</th><th>Hours</th><th>Amount</th></tr></thead>
+    <thead><tr><th style="width:90px">Date</th><th>Description</th><th style="text-align:right;width:60px">Hours</th><th style="text-align:right;width:80px">Amount</th></tr></thead>
     <tbody>
       @foreach($invoice->timeEntries as $entry)
       <tr>
         <td class="entry">{{ $entry->date->format('Y-m-d') }}</td>
         <td class="entry">{{ $entry->description }}@if($entry->sub_description) — {{ $entry->sub_description }}@endif</td>
-        <td class="entry">{{ round($entry->duration_minutes / 60, 2) }}</td>
-        <td class="entry">${{ number_format(round($entry->duration_minutes / 60 / 0.25) * 0.25 * $invoice->rate, 2) }}</td>
+        <td class="entry" style="text-align:right">{{ round($entry->duration_minutes / 60, 2) }}</td>
+        <td class="entry" style="text-align:right">${{ number_format(round($entry->duration_minutes / 60 / 0.25) * 0.25 * $invoice->rate, 2) }}</td>
       </tr>
       @endforeach
     </tbody>
