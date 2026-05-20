@@ -32,6 +32,7 @@ class InvoicePdfService
             ->setNodeBinary(env('BROWSERSHOT_NODE_PATH', '/usr/bin/node'))
             ->setNpmBinary(env('BROWSERSHOT_NPM_PATH', '/usr/bin/npm'))
             ->noSandbox()
+            ->addChromiumArguments(['--disable-dev-shm-usage'])
             ->format('A4')
             ->margins(15, 15, 15, 15)
             ->showBackground()
