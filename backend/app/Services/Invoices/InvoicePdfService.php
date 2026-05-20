@@ -3,8 +3,8 @@
 namespace App\Services\Invoices;
 
 use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Browsershot\Browsershot;
 
 class InvoicePdfService
 {
@@ -21,21 +21,10 @@ class InvoicePdfService
             }
         }
 
-        $html = view('invoices.invoice', [
+        return Pdf::loadView('invoices.invoice', [
             'invoice'     => $invoice->load('client', 'timeEntries'),
             'company'     => $company,
             'logoDataUrl' => $logoDataUrl,
-        ])->render();
-
-        return Browsershot::html($html)
-            ->setChromePath(env('BROWSERSHOT_CHROMIUM_PATH', '/usr/bin/chromium-browser'))
-            ->setNodeBinary(env('BROWSERSHOT_NODE_PATH', '/usr/bin/node'))
-            ->setNpmBinary(env('BROWSERSHOT_NPM_PATH', '/usr/bin/npm'))
-            ->noSandbox()
-            ->addChromiumArguments(['--disable-dev-shm-usage'])
-            ->format('A4')
-            ->margins(15, 15, 15, 15)
-            ->showBackground()
-            ->pdf();
+        ])->setPaper('a4')->output();
     }
 }

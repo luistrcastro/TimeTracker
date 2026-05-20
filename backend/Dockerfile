@@ -11,16 +11,19 @@ FROM php:8.3-fpm-alpine AS dev
 RUN apk add --no-cache \
         linux-headers \
         postgresql-dev \
+        libpng-dev \
+        libjpeg-turbo-dev \
+        freetype-dev \
         chromium \
         nss \
-        freetype \
         harfbuzz \
         ca-certificates \
         ttf-freefont \
         font-noto \
         nodejs \
         npm \
-    && docker-php-ext-install pdo pdo_pgsql \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_pgsql gd \
     && apk add --no-cache curl
 ENV BROWSERSHOT_CHROMIUM_PATH=/usr/bin/chromium-browser
 ENV BROWSERSHOT_NODE_PATH=/usr/bin/node
@@ -33,27 +36,18 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 8020
 
-# ── Stage 3: runtime (prod, includes chromium for Browsershot) ───────────────
+# ── Stage 3: runtime (prod) ──────────────────────────────────────────────────
 FROM php:8.3-fpm-alpine AS runtime
 RUN apk add --no-cache \
         linux-headers \
         postgresql-dev \
-        chromium \
-        nss \
-        freetype \
-        harfbuzz \
-        ca-certificates \
-        ttf-freefont \
-        font-noto \
-        nodejs \
-        npm \
+        libpng-dev \
+        libjpeg-turbo-dev \
+        freetype-dev \
         nginx \
-    && docker-php-ext-install pdo pdo_pgsql opcache
-ENV BROWSERSHOT_CHROMIUM_PATH=/usr/bin/chromium-browser
-ENV BROWSERSHOT_NODE_PATH=/usr/bin/node
-ENV BROWSERSHOT_NPM_PATH=/usr/bin/npm
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_pgsql opcache gd
 WORKDIR /app
-RUN npm install puppeteer --prefix /app
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
