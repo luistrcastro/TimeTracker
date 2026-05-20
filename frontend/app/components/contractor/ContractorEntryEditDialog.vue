@@ -1,33 +1,23 @@
 <template>
   <v-dialog v-model="model" max-width="600">
-    <v-card>
+    <v-card @keydown.enter.exact="handleEnter">
       <v-card-title>Edit Entry</v-card-title>
       <v-card-text>
         <v-row dense>
           <v-col cols="6">
-            <v-select
+            <ContractorClientSelect
               v-model="form.clientId"
-              :items="contractor.clients"
-              item-title="name"
-              item-value="id"
               label="Client"
               variant="outlined"
-              density="compact"
-              clearable
               @update:model-value="form.taskId = null"
             />
           </v-col>
           <v-col cols="6">
-            <v-select
+            <ContractorTaskSelect
               v-model="form.taskId"
-              :items="taskOptions"
-              item-title="name"
-              item-value="id"
+              :client-id="form.clientId"
               label="Task"
               variant="outlined"
-              density="compact"
-              clearable
-              :disabled="!taskOptions.length"
             />
           </v-col>
           <v-col cols="12">
@@ -38,9 +28,6 @@
               density="compact"
               :rules="[(v: string) => !!v || 'Required']"
             />
-          </v-col>
-          <v-col cols="12">
-            <v-text-field v-model="form.subDescription" label="Sub-description" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="4">
             <v-text-field v-model="form.start" type="time" label="Start" variant="outlined" density="compact" @input="calcDuration" />
@@ -90,10 +77,6 @@ const model = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
 })
-
-const taskOptions = computed(() =>
-  contractor.clients.find(c => c.id === form.clientId)?.tasks ?? []
-)
 
 const originalFinish = ref('')
 
@@ -159,6 +142,14 @@ function calcDuration() {
   }
   form.durationMinutes = 0
   form.duration = '0:00'
+}
+
+function handleEnter(e: KeyboardEvent) {
+  // Don't submit if focus is inside an autocomplete overlay (dropdown open)
+  if ((document.activeElement as HTMLElement)?.closest('.v-overlay__content')) return
+  // Don't submit if a button is focused (let it click naturally)
+  if ((e.target as HTMLElement).tagName === 'BUTTON') return
+  save(false)
 }
 
 async function save(cascade: boolean) {

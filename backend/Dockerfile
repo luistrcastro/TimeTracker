@@ -26,9 +26,11 @@ ENV BROWSERSHOT_CHROMIUM_PATH=/usr/bin/chromium-browser
 ENV BROWSERSHOT_NODE_PATH=/usr/bin/node
 ENV BROWSERSHOT_NPM_PATH=/usr/bin/npm
 WORKDIR /app
-RUN npm install puppeteer --prefix /app
 # In dev, the source is bind-mounted at runtime; copy nothing from vendor stage.
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 8020
 
 # ── Stage 3: runtime (prod, includes chromium for Browsershot) ───────────────

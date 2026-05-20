@@ -95,6 +95,17 @@ export const useContractorStore = defineStore('contractor', {
       }
     },
 
+    async createTask(clientId: string, name: string) {
+      const api = useApi()
+      const task = await api<{ id: string; name: string }>(`/api/contractor/clients/${clientId}/tasks`, {
+        method: 'POST',
+        body: { name },
+      }) as { id: string; name: string }
+      const client = this.clients.find(c => c.id === clientId)
+      if (client) client.tasks = [...(client.tasks ?? []), task]
+      return task
+    },
+
     async loadClients() {
       const api = useApi()
       this.clients = await api<Client[]>('/api/contractor/clients') as Client[]

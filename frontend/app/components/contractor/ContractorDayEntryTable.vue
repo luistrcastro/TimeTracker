@@ -17,7 +17,6 @@
           <th @click="ui.cycleSort('project')" class="sortable">Client {{ sortIndicator('project') }}</th>
           <th @click="ui.cycleSort('subProject')" class="sortable">Task {{ sortIndicator('subProject') }}</th>
           <th>Description</th>
-          <th>Sub-description</th>
           <th @click="ui.cycleSort('start')" class="sortable">Start {{ sortIndicator('start') }}</th>
           <th>Finish</th>
           <th>Duration</th>
@@ -29,7 +28,7 @@
       <tbody>
         <template v-for="row in displayRows" :key="row.type === 'gap' ? 'gap-' + row.afterId : row.id">
           <tr v-if="row.type === 'gap'" class="gap-row">
-            <td colspan="10" class="text-center text-caption text-medium-emphasis py-1">
+            <td colspan="9" class="text-center text-caption text-medium-emphasis py-1">
               ⟵ {{ row.minutes }}m gap ⟶
             </td>
           </tr>
@@ -41,7 +40,6 @@
             <td>{{ clientName(row.clientId) }}</td>
             <td>{{ row.task }}</td>
             <td>{{ row.description }}</td>
-            <td>{{ row.subDescription }}</td>
             <td>{{ fmt.formatTime(row.start) }}</td>
             <td>{{ fmt.formatTime(row.finish) }}</td>
             <td>{{ row.duration }}</td>
@@ -53,12 +51,12 @@
             </td>
             <td class="actions-cell">
               <v-btn icon="mdi-pencil"       size="x-small" variant="text" @click.stop="openEdit(row.id!)" />
-              <v-btn icon="mdi-content-copy" size="x-small" variant="text" @click.stop="contractor.duplicate(row.id!)" />
+              <v-btn icon="mdi-content-copy" size="x-small" variant="text" title="Prefill entry row" @click.stop="prefillRow(row)" />
               <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" @click.stop="contractor.remove(row.id!)" />
             </td>
           </tr>
         </template>
-        <ContractorEntryRowNew :prefill-start="prefillStart" />
+        <ContractorEntryRowNew :prefill-start="prefillStart" :prefill="prefillData" />
       </tbody>
     </v-table>
 
@@ -85,6 +83,17 @@ const { detectGapsAndOverlaps } = useGapOverlap()
 
 const editDialog = ref(false)
 const editEntry  = ref<TimeEntry | null>(null)
+
+interface PrefillData { clientId: string | null; taskId: string | null; description: string }
+const prefillData = ref<PrefillData | null>(null)
+
+function prefillRow(row: DisplayRow) {
+  prefillData.value = {
+    clientId:    row.clientId ?? null,
+    taskId:      row.clientTaskId ?? null,
+    description: row.description ?? '',
+  }
+}
 
 const showUndo = computed({
   get: () => !!contractor.deletedEntry,
@@ -168,9 +177,9 @@ interface DisplayRow {
   afterId?: string
   minutes?: number
   clientId?: string | null
+  clientTaskId?: string | null
   task?: string
   description?: string
-  subDescription?: string
   start?: string
   finish?: string
   duration?: string

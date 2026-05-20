@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Contractor
     Route::apiResource('contractor/entries',  ContractorEntriesController::class)->names('contractor.entries');
     Route::apiResource('contractor/clients',  ClientsController::class)->names('contractor.clients');
+    Route::post('contractor/clients/{client}/tasks', [ClientsController::class, 'storeTask']);
     Route::apiResource('contractor/invoices', InvoicesController::class)->names('contractor.invoices');
     Route::get('contractor/invoices/{invoice}/pdf', [InvoicesController::class, 'pdf']);
     Route::get ('contractor/company',      [CompanyController::class, 'show']);

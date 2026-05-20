@@ -4,22 +4,46 @@
 
       <!-- Avatar -->
       <v-card rounded="lg" class="mb-4">
-        <v-card-title class="text-subtitle-1 font-weight-bold pt-4 px-4">Avatar</v-card-title>
-        <v-card-text class="d-flex align-center gap-4 px-4 pb-4">
-          <v-avatar size="72" :image="auth.user?.avatar_url || undefined" :color="auth.user?.avatar_url ? undefined : 'primary'">
-            <v-icon v-if="!auth.user?.avatar_url" size="36">mdi-account</v-icon>
-          </v-avatar>
-          <div class="d-flex flex-column gap-2">
-            <v-btn size="small" variant="outlined" :loading="avatarLoading" @click="avatarInput?.click()">
+        <v-card-text class="d-flex flex-column align-center py-6 gap-3">
+          <div
+            class="avatar-drop-zone"
+            :class="{ 'is-dragging': isDragging }"
+            @click="avatarInput?.click()"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="onDrop"
+          >
+            <v-avatar
+              size="100"
+              :image="auth.user?.avatar_url || undefined"
+              :icon="auth.user?.avatar_url ? undefined : 'mdi-account'"
+              :color="auth.user?.avatar_url ? undefined : 'primary'"
+            />
+            <div class="avatar-overlay">
+              <v-icon size="24" color="white">mdi-camera</v-icon>
+              <span class="text-caption text-white mt-1">{{ auth.user?.avatar_url ? 'Change' : 'Upload' }}</span>
+            </div>
+            <v-progress-circular v-if="avatarLoading" indeterminate color="white" size="28" width="2" class="avatar-loader" />
+          </div>
+
+          <div class="text-center">
+            <div class="text-body-1 font-weight-medium">{{ auth.user?.name }}</div>
+            <div class="text-caption text-medium-emphasis">{{ auth.user?.email }}</div>
+          </div>
+
+          <div class="d-flex gap-2 align-center">
+            <v-btn size="small" variant="tonal" color="primary" prepend-icon="mdi-upload" :loading="avatarLoading" @click="avatarInput?.click()">
               Upload photo
             </v-btn>
             <v-btn v-if="auth.user?.avatar_url" size="small" variant="text" color="error" :loading="avatarLoading" @click="removeAvatar">
               Remove
             </v-btn>
           </div>
-          <input ref="avatarInput" type="file" accept="image/*" class="d-none" @change="onAvatarChange" />
+
+          <div class="text-caption text-disabled">Max 512 KB · JPG, PNG, GIF, WEBP</div>
+          <v-alert v-if="avatarError" type="error" density="compact" class="w-100">{{ avatarError }}</v-alert>
         </v-card-text>
-        <v-alert v-if="avatarError" type="error" density="compact" class="mx-4 mb-4">{{ avatarError }}</v-alert>
+        <input ref="avatarInput" type="file" accept="image/*" class="d-none" @change="onAvatarChange" />
       </v-card>
 
       <!-- Name -->
@@ -78,10 +102,9 @@ const auth = useAuthStore()
 const avatarInput = ref<HTMLInputElement | null>(null)
 const avatarLoading = ref(false)
 const avatarError = ref('')
+const isDragging = ref(false)
 
-async function onAvatarChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
+async function uploadFile(file: File) {
   if (file.size > 512 * 1024) {
     avatarError.value = 'Image must be under 512 KB.'
     return
@@ -96,6 +119,22 @@ async function onAvatarChange(e: Event) {
     avatarLoading.value = false
     if (avatarInput.value) avatarInput.value.value = ''
   }
+}
+
+async function onAvatarChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) await uploadFile(file)
+}
+
+async function onDrop(e: DragEvent) {
+  isDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    avatarError.value = 'Please drop an image file.'
+    return
+  }
+  await uploadFile(file)
 }
 
 async function removeAvatar() {
@@ -164,3 +203,49 @@ async function savePassword() {
   }
 }
 </script>
+
+<style scoped>
+.avatar-drop-zone {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.avatar-drop-zone:hover {
+  transform: scale(1.03);
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.avatar-drop-zone:hover .avatar-overlay,
+.avatar-drop-zone.is-dragging .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-drop-zone.is-dragging {
+  box-shadow: 0 0 0 3px rgb(var(--v-theme-primary));
+}
+
+.avatar-loader {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 2;
+}
+</style>

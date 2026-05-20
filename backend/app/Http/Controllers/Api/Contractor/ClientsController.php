@@ -81,4 +81,15 @@ class ClientsController extends Controller
         $client->delete();
         return response()->json(null, 204);
     }
+
+    public function storeTask(Request $request, Client $client): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $task = $client->tasks()->firstOrCreate(['name' => $data['name']]);
+
+        return response()->json(['id' => $task->id, 'name' => $task->name], 201);
+    }
 }
