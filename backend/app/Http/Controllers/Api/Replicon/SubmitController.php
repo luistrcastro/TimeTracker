@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api\Replicon;
 
 use App\Http\Controllers\Controller;
+use App\Services\Replicon\RepliconClient;
 use App\Services\Replicon\RepliconSubmitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SubmitController extends Controller
 {
-    public function store(Request $request, RepliconSubmitService $submitService): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
             'rows'              => ['required', 'array', 'min:1'],
@@ -21,7 +22,8 @@ class SubmitController extends Controller
             'date'              => ['required', 'date_format:Y-m-d'],
         ]);
 
-        $results = $submitService->submit(auth()->user(), $data['rows'], $data['date']);
+        $user    = auth()->user();
+        $results = (new RepliconSubmitService(new RepliconClient($user)))->submit($user, $data['rows'], $data['date']);
 
         return response()->json(['results' => $results]);
     }
