@@ -85,7 +85,7 @@ fly secrets set \
   MAIL_FROM_ADDRESS="noreply@REPLACE_ME" \
   SUPABASE_S3_KEY="your-supabase-s3-access-key-id" \
   SUPABASE_S3_SECRET="your-supabase-s3-secret" \
-  SUPABASE_S3_BUCKET="company-logos" \
+  SUPABASE_S3_BUCKET="timetracker" \
   SUPABASE_S3_ENDPOINT="https://your-project-ref.supabase.co/storage/v1/s3" \
   ALLOWED_ORIGINS="https://app.timetracker.space"
 
