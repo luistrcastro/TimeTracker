@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Contractor;
 
+use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ContractorTimeEntryResource;
 use App\Models\ContractorTimeEntry;
@@ -57,6 +58,8 @@ class EntriesController extends Controller
 
     public function update(Request $request, ContractorTimeEntry $entry): ContractorTimeEntryResource
     {
+        $this->assertEntryEditable($entry);
+
         $data = $request->validate([
             'clientId'        => ['nullable', 'uuid', 'exists:clients,id'],
             'clientTaskId'    => ['nullable', 'uuid', 'exists:client_tasks,id'],
@@ -70,8 +73,8 @@ class EntriesController extends Controller
         ]);
 
         $entry->update([
-            'client_id'        => array_key_exists('clientId', $data)     ? $data['clientId']     : $entry->client_id,
-            'client_task_id'   => array_key_exists('clientTaskId', $data)  ? $data['clientTaskId'] : $entry->client_task_id,
+            'client_id'        => array_key_exists('clientId', $data)    ? $data['clientId']     : $entry->client_id,
+            'client_task_id'   => array_key_exists('clientTaskId', $data) ? $data['clientTaskId'] : $entry->client_task_id,
             'task'             => $data['task']             ?? $entry->task,
             'description'      => $data['description']      ?? $entry->description,
             'sub_description'  => $data['subDescription']   ?? $entry->sub_description,
@@ -86,7 +89,20 @@ class EntriesController extends Controller
 
     public function destroy(ContractorTimeEntry $entry): JsonResponse
     {
+        $this->assertEntryEditable($entry);
         $entry->delete();
         return response()->json(null, 204);
+    }
+
+    private function assertEntryEditable(ContractorTimeEntry $entry): void
+    {
+        if (! $entry->invoice_id) {
+            return;
+        }
+
+        $invoice = $entry->invoice()->withoutGlobalScopes()->first();
+        if ($invoice && $invoice->status !== InvoiceStatus::Draft) {
+            abort(422, 'Entry belongs to a finalized invoice.');
+        }
     }
 }

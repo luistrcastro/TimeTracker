@@ -35,7 +35,7 @@
           <tr
             v-else
             :class="rowClass(row)"
-            @dblclick="openEdit(row.id!)"
+            @dblclick="guardedEdit(row.id!)"
           >
             <td>{{ clientName(row.clientId) }}</td>
             <td>{{ row.task }}</td>
@@ -50,9 +50,9 @@
               </span>
             </td>
             <td class="actions-cell">
-              <v-btn icon="mdi-pencil"       size="x-small" variant="text" @click.stop="openEdit(row.id!)" />
+              <v-btn icon="mdi-pencil"       size="x-small" variant="text" @click.stop="guardedEdit(row.id!)" />
               <v-btn icon="mdi-content-copy" size="x-small" variant="text" title="Prefill entry row" @click.stop="prefillRow(row)" />
-              <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" @click.stop="contractor.remove(row.id!)" />
+              <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" @click.stop="guardedDelete(row.id!)" />
             </td>
           </tr>
         </template>
@@ -67,6 +67,24 @@
       <template #actions>
         <v-btn color="primary" variant="text" @click="contractor.undo()">Undo</v-btn>
       </template>
+    </v-snackbar>
+
+    <v-dialog v-model="warnDialog" max-width="420">
+      <v-card>
+        <v-card-title>Entry on draft invoice</v-card-title>
+        <v-card-text>
+          This entry is on invoice {{ warnInvoiceNumber }} (draft). Changes will affect the invoice totals. Continue?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="warnDialog = false">Cancel</v-btn>
+          <v-btn color="primary" @click="confirmWarn">Continue</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-snackbar v-model="errorSnackbar" color="error" :timeout="4000" location="bottom right">
+      {{ errorMessage }}
     </v-snackbar>
   </div>
 </template>
@@ -216,6 +234,41 @@ function rowClass(row: DisplayRow) {
 function openEdit(id: string) {
   editEntry.value = contractor.entries.find(e => e.id === id) ?? null
   editDialog.value = true
+}
+
+const warnDialog        = ref(false)
+const warnInvoiceNumber = ref('')
+const warnPendingAction = ref<(() => void) | null>(null)
+const errorSnackbar     = ref(false)
+const errorMessage      = ref('')
+
+function guardEntry(id: string, action: () => void) {
+  const entry = contractor.entries.find(e => e.id === id)
+  if (!entry?.invoiceId) { action(); return }
+  const invoice = contractor.invoices.find(i => i.id === entry.invoiceId)
+  if (!invoice) { action(); return }
+  if (invoice.status === 'draft') {
+    warnInvoiceNumber.value = invoice.number
+    warnPendingAction.value = action
+    warnDialog.value = true
+  } else {
+    errorMessage.value = `This entry belongs to finalized invoice ${invoice.number} and cannot be modified.`
+    errorSnackbar.value = true
+  }
+}
+
+function guardedEdit(id: string) {
+  guardEntry(id, () => openEdit(id))
+}
+
+function guardedDelete(id: string) {
+  guardEntry(id, () => contractor.remove(id))
+}
+
+function confirmWarn() {
+  warnPendingAction.value?.()
+  warnDialog.value = false
+  warnPendingAction.value = null
 }
 
 function prevDay() {

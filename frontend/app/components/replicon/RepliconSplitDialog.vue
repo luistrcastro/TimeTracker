@@ -98,7 +98,7 @@ const props = defineProps<{
   entry: TimeEntry | null
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
+const emit = defineEmits<{ 'update:modelValue': [boolean]; split: [] }>()
 
 const replicon = useRepliconStore()
 
@@ -259,7 +259,7 @@ async function save(cascade: boolean) {
     }
   }
 
-  await replicon.remove(props.entry.id)
+  await replicon.remove(props.entry.id, true)
 
   for (const r of rows.value) {
     const project = replicon.projects.find(p => p.id === r.projectId)
@@ -280,6 +280,7 @@ async function save(cascade: boolean) {
   }
 
   model.value = false
+  emit('split')
 }
 </script>
 

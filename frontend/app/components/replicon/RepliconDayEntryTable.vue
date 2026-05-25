@@ -86,13 +86,17 @@
     </v-table>
 
     <RepliconEntryEditDialog v-model="editDialog" :entry="editEntry" />
-    <RepliconSplitDialog v-model="splitDialog" :entry="splitEntry" />
+    <RepliconSplitDialog v-model="splitDialog" :entry="splitEntry" @split="onSplit" />
 
     <v-snackbar v-model="showUndo" :timeout="5000" location="bottom right">
       Entry deleted.
       <template #actions>
         <v-btn color="primary" variant="text" @click="replicon.undo()">Undo</v-btn>
       </template>
+    </v-snackbar>
+
+    <v-snackbar v-model="showSplitDone" :timeout="3000" location="bottom right">
+      Entry split successfully.
     </v-snackbar>
   </div>
 </template>
@@ -133,6 +137,9 @@ const showUndo = computed({
   get: () => !!replicon.deletedEntry,
   set: () => {},
 })
+
+const showSplitDone = ref(false)
+function onSplit() { showSplitDone.value = true }
 
 const dayEntries = computed(() =>
   replicon.entries.filter(e => e.date === ui.currentDate)

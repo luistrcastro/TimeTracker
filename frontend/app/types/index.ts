@@ -40,9 +40,11 @@ export interface Invoice {
   taxRate: number
   taxAmount: number
   total: number
-  status: 'draft' | 'sent' | 'paid' | 'void'
+  status: 'draft' | 'sent' | 'approved' | 'paid' | 'void'
   notes?: string
   entryIds?: string[]
+  pdfPath: string | null
+  pdfStored: boolean
 }
 
 export interface CompanySetting {

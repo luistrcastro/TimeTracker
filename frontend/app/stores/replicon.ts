@@ -81,15 +81,19 @@ export const useRepliconStore = defineStore('replicon', {
       return updated as TimeEntry
     },
 
-    async remove(id: string) {
+    async remove(id: string, silent = false) {
       const entry = this.entries.find(e => e.id === id)
       if (!entry) return
-      this.deletedEntry = entry
-      if (this.undoTimer) clearTimeout(this.undoTimer)
+      if (!silent) {
+        this.deletedEntry = entry
+        if (this.undoTimer) clearTimeout(this.undoTimer)
+      }
       const api = useApi()
       await api(`/api/replicon/entries/${id}`, { method: 'DELETE' })
       this.entries = this.entries.filter(e => e.id !== id)
-      this.undoTimer = setTimeout(() => { this.deletedEntry = null }, 5000)
+      if (!silent) {
+        this.undoTimer = setTimeout(() => { this.deletedEntry = null }, 5000)
+      }
     },
 
     async undo() {

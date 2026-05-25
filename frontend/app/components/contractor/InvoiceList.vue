@@ -24,8 +24,10 @@
             </v-chip>
           </td>
           <td class="d-flex align-center gap-1" style="white-space:nowrap">
-            <v-btn size="x-small" variant="text" @click="$emit('view', inv.id)">View</v-btn>
-            <v-btn size="x-small" variant="text" icon="mdi-file-pdf-box" :loading="downloading === inv.id" @click="downloadPdf(inv)" />
+            <template v-if="inv.status !== 'void'">
+              <v-btn size="x-small" variant="text" @click="$emit('view', inv.id)">View</v-btn>
+              <v-btn size="x-small" variant="text" icon="mdi-file-pdf-box" :loading="downloading === inv.id" @click="downloadPdf(inv)" />
+            </template>
           </td>
         </tr>
       </tbody>
@@ -48,7 +50,13 @@ const clientName = (id: string) =>
   contractor.clients.find(c => c.id === id)?.name ?? id
 
 function statusColor(status: string) {
-  return ({ draft: 'default', sent: 'blue', paid: 'success', void: 'error' } as Record<string, string>)[status] ?? 'default'
+  return ({
+    draft:    'default',
+    sent:     'blue',
+    approved: 'purple',
+    paid:     'success',
+    void:     'error',
+  } as Record<string, string>)[status] ?? 'default'
 }
 
 async function downloadPdf(inv: Invoice) {

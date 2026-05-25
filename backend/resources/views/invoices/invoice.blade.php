@@ -29,19 +29,13 @@
       <div style="font-size:20px;font-weight:700;color:#1a1a1a">{{ $invoice->number }}</div>
       <div style="color:#4b5563"><span style="font-weight:700">Date:</span> {{ $invoice->created_date->format('Y-m-d') }}</div>
       <div style="color:#4b5563"><span style="font-weight:700">Due:</span> {{ $invoice->due_date->format('Y-m-d') }}</div>
-      @php
-        $statusColor = match($invoice->status->value) {
-          'paid'  => '#16a34a',
-          'sent'  => '#2563eb',
-          'void'  => '#dc2626',
-          default => '#6b7280',
-        };
-      @endphp
+      @if($invoice->status->value === 'draft')
       <div style="margin-top:8px">
-        <span style="padding:3px 10px;border:1.5px solid {{ $statusColor }};color:{{ $statusColor }};border-radius:4px;font-size:11px;font-weight:600;letter-spacing:0.05em">
-          {{ strtoupper($invoice->status->value) }}
+        <span style="padding:3px 10px;border:1.5px solid #6b7280;color:#6b7280;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:0.05em">
+          DRAFT
         </span>
       </div>
+      @endif
     </td>
   </tr>
 </table>

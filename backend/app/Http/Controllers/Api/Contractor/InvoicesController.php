@@ -11,6 +11,7 @@ use App\Services\Invoices\InvoicePdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InvoicesController extends Controller
@@ -68,22 +69,30 @@ class InvoicesController extends Controller
     public function update(Request $request, Invoice $invoice): InvoiceResource
     {
         $data = $request->validate([
-            'status' => ['required', 'in:draft,sent,paid,void'],
+            'status' => ['sometimes', 'required', 'string'],
             'notes'  => ['nullable', 'string'],
         ]);
 
-        $newStatus = InvoiceStatus::from($data['status']);
-
-        if ($newStatus === InvoiceStatus::Void && $invoice->status !== InvoiceStatus::Void) {
-            $invoice->timeEntries()->update(['invoice_id' => null]);
+        if (isset($data['status'])) {
+            $newStatus = InvoiceStatus::tryFrom($data['status']);
+            $allowed   = match ($invoice->status) {
+                InvoiceStatus::Sent     => [InvoiceStatus::Approved],
+                InvoiceStatus::Approved => [InvoiceStatus::Paid],
+                default                 => [],
+            };
+            if (! $newStatus || ! in_array($newStatus, $allowed, true)) {
+                abort(422, 'Invalid status transition.');
+            }
+            $invoice->status = $newStatus;
         }
 
-        $invoice->update([
-            'status' => $newStatus,
-            'notes'  => $data['notes'] ?? $invoice->notes,
-        ]);
+        if (array_key_exists('notes', $data)) {
+            $invoice->notes = $data['notes'] ?? '';
+        }
 
-        return new InvoiceResource($invoice->load('timeEntries'));
+        $invoice->save();
+
+        return new InvoiceResource($invoice->fresh()->load('timeEntries'));
     }
 
     public function destroy(Invoice $invoice): JsonResponse
@@ -93,13 +102,72 @@ class InvoicesController extends Controller
         return response()->json(null, 204);
     }
 
+    public function void(Invoice $invoice): InvoiceResource
+    {
+        if ($invoice->pdf_path) {
+            Storage::disk()->delete($invoice->pdf_path);
+        }
+
+        $invoice->timeEntries()->update(['invoice_id' => null]);
+        $invoice->update(['pdf_path' => null, 'status' => InvoiceStatus::Void]);
+
+        return new InvoiceResource($invoice->fresh()->load('timeEntries'));
+    }
+
+    public function revert(Invoice $invoice): InvoiceResource
+    {
+        if ($invoice->pdf_path) {
+            Storage::disk()->delete($invoice->pdf_path);
+        }
+
+        $invoice->update(['pdf_path' => null, 'status' => InvoiceStatus::Draft]);
+
+        return new InvoiceResource($invoice->fresh()->load('timeEntries'));
+    }
+
+    public function send(Invoice $invoice, InvoicePdfService $pdfService): InvoiceResource
+    {
+        $invoice->load('timeEntries');
+
+        $subtotal = $invoice->timeEntries->sum(function ($entry) use ($invoice) {
+            $hours = round($entry->duration_minutes / 60 / 0.25) * 0.25;
+            return $hours * $invoice->rate;
+        });
+        $subtotal  = round($subtotal, 2);
+        $taxAmount = round($subtotal * $invoice->tax_rate / 100, 2);
+        $total     = round($subtotal + $taxAmount, 2);
+
+        // Set on unsaved model so the PDF blade reads updated values
+        $invoice->status     = InvoiceStatus::Sent;
+        $invoice->subtotal   = $subtotal;
+        $invoice->tax_amount = $taxAmount;
+        $invoice->total      = $total;
+
+        $pdf  = $pdfService->render($invoice);
+        $path = "invoices/{$invoice->user_id}/{$invoice->id}.pdf";
+
+        Storage::disk()->put($path, $pdf);
+
+        $invoice->update([
+            'subtotal'   => $subtotal,
+            'tax_amount' => $taxAmount,
+            'total'      => $total,
+            'pdf_path'   => $path,
+            'status'     => InvoiceStatus::Sent,
+        ]);
+
+        return new InvoiceResource($invoice->fresh()->load('timeEntries'));
+    }
+
     public function pdf(Invoice $invoice, InvoicePdfService $pdfService): StreamedResponse
     {
-        $pdf = $pdfService->render($invoice);
         $filename = "{$invoice->client->name} - {$invoice->number} - {$invoice->created_date->format('Y-m-d')}.pdf";
+        $contents = $invoice->pdf_path
+            ? Storage::disk()->get($invoice->pdf_path)
+            : $pdfService->render($invoice);
 
         return response()->streamDownload(
-            fn() => print($pdf),
+            fn() => print($contents),
             $filename,
             ['Content-Type' => 'application/pdf']
         );

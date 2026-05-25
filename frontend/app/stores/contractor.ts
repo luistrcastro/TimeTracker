@@ -121,6 +121,30 @@ export const useContractorStore = defineStore('contractor', {
       this.company = await api<CompanySetting>('/api/contractor/company') as CompanySetting
     },
 
+    async sendInvoice(id: string) {
+      const api = useApi()
+      await api(`/api/contractor/invoices/${id}/send`, { method: 'POST' })
+      await Promise.all([this.loadInvoices(), this.loadEntries()])
+    },
+
+    async revertInvoice(id: string) {
+      const api = useApi()
+      await api(`/api/contractor/invoices/${id}/revert`, { method: 'POST' })
+      await this.loadInvoices()
+    },
+
+    async voidInvoice(id: string) {
+      const api = useApi()
+      await api(`/api/contractor/invoices/${id}/void`, { method: 'POST' })
+      await Promise.all([this.loadInvoices(), this.loadEntries()])
+    },
+
+    async updateInvoiceStatus(id: string, status: 'approved' | 'paid') {
+      const api = useApi()
+      await api(`/api/contractor/invoices/${id}`, { method: 'PUT', body: { status } })
+      await this.loadInvoices()
+    },
+
     loadCustomization(data: UserCustomization) {
       this.jiraPattern = data.contractor.jiraPattern
     },

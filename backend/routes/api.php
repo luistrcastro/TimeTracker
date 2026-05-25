@@ -44,6 +44,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('contractor/clients/{client}/tasks', [ClientsController::class, 'storeTask']);
     Route::apiResource('contractor/invoices', InvoicesController::class)->names('contractor.invoices');
     Route::get('contractor/invoices/{invoice}/pdf', [InvoicesController::class, 'pdf']);
+    Route::post('contractor/invoices/{invoice}/send',   [InvoicesController::class, 'send']);
+    Route::post('contractor/invoices/{invoice}/revert', [InvoicesController::class, 'revert']);
+    Route::post('contractor/invoices/{invoice}/void',   [InvoicesController::class, 'void']);
     Route::get ('contractor/company',      [CompanyController::class, 'show']);
     Route::put ('contractor/company',      [CompanyController::class, 'update']);
     Route::post  ('contractor/company/logo', [CompanyController::class, 'uploadLogo']);

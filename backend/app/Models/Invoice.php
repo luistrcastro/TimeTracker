@@ -14,7 +14,7 @@ class Invoice extends Model
     protected $fillable = [
         'client_id', 'number', 'created_date', 'due_date',
         'rate', 'subtotal', 'tax_rate', 'tax_amount', 'total',
-        'status', 'notes',
+        'status', 'notes', 'pdf_path',
     ];
 
     protected function casts(): array

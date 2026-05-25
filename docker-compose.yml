@@ -1,10 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file: ./backend/.env
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
 
@@ -15,17 +12,7 @@ services:
   laravel:
     build: { context: ./backend, target: dev }
     command: php artisan serve --host=0.0.0.0 --port=8020
-    environment:
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_URL: ${APP_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
-      DB_HOST: ${DB_HOST}
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
+    env_file: ./backend/.env
     volumes: ["./backend:/app"]
     ports: ["8020:8020"]
     depends_on: [postgres, mailpit]
@@ -33,17 +20,7 @@ services:
   queue:
     build: { context: ./backend, target: dev }
     command: php artisan queue:work --sleep=3 --tries=3
-    environment:
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_URL: ${APP_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
-      DB_HOST: ${DB_HOST}
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
+    env_file: ./backend/.env
     volumes: ["./backend:/app"]
     depends_on: [postgres, laravel]
 
@@ -53,8 +30,7 @@ services:
     command: sh -c "npm install && rm -rf .nuxt && npm run dev"
     environment:
       NUXT_HOST: 0.0.0.0
-      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE}
-      NUXT_PUBLIC_APP_NAME: ${NUXT_PUBLIC_APP_NAME}
+    env_file: ./frontend/.env
     volumes: ["./frontend:/app"]
     ports: ["3000:3000"]
     depends_on: [laravel]
