@@ -14,6 +14,7 @@ export interface RepliconCredentials {
   session_id: string
   server_view_state_id: string
   cookie_set: boolean
+  credentials_corrupt?: boolean
 }
 
 export const useRepliconStore = defineStore('replicon', {

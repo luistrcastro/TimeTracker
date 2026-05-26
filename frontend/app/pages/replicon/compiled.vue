@@ -92,13 +92,17 @@ async function copyAll() {
 }
 
 async function submit() {
-  const rows = compiledRows.value.map(r => ({
-    projectId: r.project,
-    taskId: r.subProject,
-    rowIndex: replicon.rowMap[`${r.project}:${r.subProject}`] ?? 0,
-    hours: r.hoursDecimal,
-    comment: r.comments,
-  }))
+  const rows = compiledRows.value.map(r => {
+    const proj = replicon.projects.find(p => p.code === r.project)
+    const task = proj?.tasks.find(t => t.name === r.subProject)
+    return {
+      projectId: proj?.id ?? r.project,
+      taskId:    task?.id ?? r.subProject,
+      rowIndex:  (proj && task) ? (replicon.rowMap[`${proj.id}:${task.id}`] ?? 0) : 0,
+      hours:     r.hoursDecimal,
+      comment:   r.comments,
+    }
+  })
   submitting.value = true
   try {
     const results = await replicon.submit(rows, ui.currentDate)
@@ -113,7 +117,7 @@ async function submit() {
 }
 
 onMounted(async () => {
-  await Promise.all([replicon.loadEntries(), replicon.loadCredentials(), replicon.loadRowMap()])
+  await Promise.all([replicon.loadEntries(), replicon.loadCredentials(), replicon.loadRowMap(), replicon.loadProjects()])
 })
 watch(() => ui.currentDate, () => replicon.loadEntries(ui.currentDate))
 </script>

@@ -7,6 +7,15 @@
       </v-chip>
     </v-card-title>
     <v-card-text>
+      <v-alert
+        v-if="replicon.credentials?.credentials_corrupt"
+        type="warning"
+        variant="tonal"
+        density="compact"
+        class="mb-4"
+      >
+        Stored credentials could not be decrypted (app key changed). Re-enter your credentials and save to fix this.
+      </v-alert>
       <v-row dense>
         <v-col cols="12">
           <v-text-field
@@ -52,7 +61,7 @@
       </v-tooltip>
       <v-btn variant="text" :loading="refreshing" @click="refresh">Refresh</v-btn>
       <v-spacer />
-      <v-btn v-if="replicon.credsOk" color="error" variant="text" @click="replicon.deleteCredentials()">Clear</v-btn>
+      <v-btn v-if="replicon.credentials?.configured" color="error" variant="text" @click="replicon.deleteCredentials()">Clear</v-btn>
       <v-btn color="primary" :loading="saving" @click="save">Save Credentials</v-btn>
     </v-card-actions>
     <v-snackbar v-model="saved" :timeout="2000" location="bottom right">Credentials saved.</v-snackbar>

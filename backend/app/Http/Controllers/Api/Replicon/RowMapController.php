@@ -8,6 +8,7 @@ use App\Models\RepliconRowMap;
 use App\Models\RepliconTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RowMapController extends Controller
 {
@@ -60,36 +61,39 @@ class RowMapController extends Controller
         ]);
 
         $userId = auth()->id();
+        $total  = count($data['rows']);
         $count  = 0;
 
-        foreach ($data['rows'] as $row) {
-            $project = RepliconProject::where('user_id', $userId)
-                ->where('replicon_id', (string) $row['projectId'])
-                ->first();
+        DB::transaction(function () use ($data, $userId, &$count) {
+            RepliconRowMap::where('user_id', $userId)->delete();
 
-            if (! $project) {
-                continue;
-            }
+            foreach ($data['rows'] as $row) {
+                $project = RepliconProject::where('user_id', $userId)
+                    ->where('replicon_id', (string) $row['projectId'])
+                    ->first();
 
-            $task = RepliconTask::where('replicon_project_id', $project->id)
-                ->where('replicon_task_id', (string) $row['taskId'])
-                ->first();
+                if (! $project) {
+                    continue;
+                }
 
-            if (! $task) {
-                continue;
-            }
+                $task = RepliconTask::where('replicon_project_id', $project->id)
+                    ->where('replicon_task_id', (string) $row['taskId'])
+                    ->first();
 
-            RepliconRowMap::updateOrCreate(
-                [
+                if (! $task) {
+                    continue;
+                }
+
+                RepliconRowMap::create([
                     'user_id'             => $userId,
                     'replicon_project_id' => $project->id,
                     'replicon_task_id'    => $task->id,
-                ],
-                ['row_index' => (int) $row['rowId']]
-            );
-            $count++;
-        }
+                    'row_index'           => (int) $row['rowId'],
+                ]);
+                $count++;
+            }
+        });
 
-        return response()->json(['count' => $count, 'total' => count($data['rows'])]);
+        return response()->json(['count' => $count, 'total' => $total]);
     }
 }

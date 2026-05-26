@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Replicon;
 
 use App\Http\Controllers\Controller;
 use App\Models\RepliconCredential;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,13 +14,25 @@ class CredentialsController extends Controller
     {
         $cred = RepliconCredential::where('user_id', auth()->id())->first();
 
-        return response()->json([
-            'configured'           => (bool) $cred,
-            'base_url'             => $cred?->base_url ?? '',
-            'server_view_state_id' => $cred?->server_view_state_id ?? '',
-            'session_id'           => $cred?->session_id ?? '',
-            'cookie_set'           => (bool) $cred?->cookie_header,
-        ]);
+        try {
+            return response()->json([
+                'configured'           => (bool) $cred,
+                'base_url'             => $cred?->base_url ?? '',
+                'server_view_state_id' => $cred?->server_view_state_id ?? '',
+                'session_id'           => $cred?->session_id ?? '',
+                'cookie_set'           => (bool) $cred?->cookie_header,
+            ]);
+        } catch (DecryptException) {
+            // Stored credentials were encrypted with a different APP_KEY — treat as unset
+            return response()->json([
+                'configured'           => (bool) $cred,
+                'base_url'             => $cred?->base_url ?? '',
+                'server_view_state_id' => '',
+                'session_id'           => '',
+                'cookie_set'           => false,
+                'credentials_corrupt'  => true,
+            ]);
+        }
     }
 
     public function update(Request $request): JsonResponse
@@ -44,12 +57,18 @@ class CredentialsController extends Controller
             ])
         );
 
+        try {
+            $cookieSet = (bool) $cred->cookie_header;
+        } catch (DecryptException) {
+            $cookieSet = false;
+        }
+
         return response()->json([
             'configured'           => true,
             'base_url'             => $cred->base_url,
             'server_view_state_id' => $cred->server_view_state_id,
             'session_id'           => $cred->session_id,
-            'cookie_set'           => (bool) $cred->cookie_header,
+            'cookie_set'           => $cookieSet,
         ]);
     }
 
