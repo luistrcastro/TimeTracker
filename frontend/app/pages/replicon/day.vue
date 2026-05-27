@@ -33,7 +33,7 @@ async function handleCopyFrom(entryIds: string[]) {
   const toCopy = replicon.entries.filter(e => entryIds.includes(e.id))
   for (const e of toCopy) {
     const { id, ...rest } = e
-    await replicon.create({ ...rest, date: ui.currentDate, start: '', finish: '', duration: '0:00', durationMinutes: 0 })
+    await replicon.create({ ...rest, date: ui.currentDate, start: '', finish: '', duration: '0:00', durationMinutes: 0, logged: false })
   }
   showCopyFrom.value = false
 }

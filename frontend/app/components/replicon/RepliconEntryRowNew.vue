@@ -65,7 +65,9 @@
     </td>
     <td class="text-body-2">{{ form.duration }}</td>
     <td></td>
-    <td></td>
+    <td>
+      <v-checkbox-btn v-model="form.logged" :color="form.logged ? 'success' : undefined" density="compact" hide-details />
+    </td>
     <td>
       <v-btn size="x-small" color="primary" :disabled="!canSave" @click="save" >Save</v-btn>
       <v-btn size="x-small" variant="text" @click="clear(null)">Clear</v-btn>
@@ -94,6 +96,7 @@ const form = reactive({
   finish:   '',
   duration: '0:00',
   durationMinutes: 0,
+  logged: false,
 })
 
 watch(() => props.prefillStart, (v) => { if (!form.start) form.start = v })
@@ -147,7 +150,7 @@ async function save() {
     finish:          form.finish,
     duration:        form.duration,
     durationMinutes: form.durationMinutes,
-    logged:          false,
+    logged:          form.logged,
   })
 
   clear(form.finish)
@@ -165,6 +168,7 @@ function clear(startTime: string|null) {
   form.finish         = ''
   form.duration       = '0:00'
   form.durationMinutes = 0
+  form.logged         = false
 }
 </script>
 

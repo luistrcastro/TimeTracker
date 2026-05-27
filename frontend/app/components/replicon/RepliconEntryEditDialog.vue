@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="model" max-width="600">
+  <v-dialog v-model="model" max-width="600" @keydown.enter.prevent="save(false)">
     <v-card>
       <v-card-title>Edit Entry</v-card-title>
       <v-card-text>
