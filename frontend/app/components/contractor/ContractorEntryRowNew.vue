@@ -56,7 +56,7 @@
     <td></td>
     <td></td>
     <td>
-      <v-btn size="x-small" color="primary" :disabled="!canSave" @click="save">Save</v-btn>
+      <v-btn size="x-small" color="primary" :disabled="!canSave || saving" :loading="saving" @click="save">Save</v-btn>
     </td>
   </tr>
 </template>
@@ -108,6 +108,8 @@ function timeToMinutes(hhmm: string) {
   return h * 60 + m
 }
 
+const saving = ref(false)
+
 const canSave = computed(() => !!form.description && !!form.start && !!form.finish)
 
 function focusNext(field: string) {
@@ -117,32 +119,36 @@ function focusNext(field: string) {
 
 async function save() {
   if (!canSave.value) return
+  saving.value = true
+  try {
+    const task = contractor.clients
+      .find(c => c.id === form.clientId)?.tasks
+      ?.find(t => t.id === form.taskId)
 
-  const task = contractor.clients
-    .find(c => c.id === form.clientId)?.tasks
-    ?.find(t => t.id === form.taskId)
+    await contractor.create({
+      date:            ui.currentDate,
+      clientId:        form.clientId ?? undefined,
+      clientTaskId:    form.taskId ?? null,
+      task:            task?.name ?? '',
+      description:     form.description,
+      subDescription:  '',
+      start:           form.start,
+      finish:          form.finish,
+      duration:        form.duration,
+      durationMinutes: form.durationMinutes,
+    })
 
-  await contractor.create({
-    date:            ui.currentDate,
-    clientId:        form.clientId ?? undefined,
-    clientTaskId:    form.taskId ?? null,
-    task:            task?.name ?? '',
-    description:     form.description,
-    subDescription:  '',
-    start:           form.start,
-    finish:          form.finish,
-    duration:        form.duration,
-    durationMinutes: form.durationMinutes,
-  })
-
-  const savedFinish = form.finish
-  form.clientId    = null
-  form.taskId      = null
-  form.description = ''
-  form.start       = savedFinish
-  form.finish      = ''
-  form.duration    = '0:00'
-  form.durationMinutes = 0
+    const savedFinish = form.finish
+    form.clientId    = null
+    form.taskId      = null
+    form.description = ''
+    form.start       = savedFinish
+    form.finish      = ''
+    form.duration    = '0:00'
+    form.durationMinutes = 0
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 

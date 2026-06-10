@@ -70,6 +70,7 @@
                 :color="row.logged ? 'success' : undefined"
                 density="compact"
                 hide-details
+                :disabled="togglingId !== null"
                 @update:model-value="toggleLogged(row.id!, $event as boolean)"
               />
             </td>
@@ -77,7 +78,7 @@
               <v-btn icon="mdi-pencil"       size="x-small" variant="text" title="Edit this entry"   @click.stop="openEdit(row.id!)" />
               <v-btn icon="mdi-call-split"   size="x-small" variant="text" title="Split this entry"  @click.stop="openSplit(row.id!)" />
               <v-btn icon="mdi-content-copy" size="x-small" variant="text" title="Prefill entry row" @click.stop="prefillRow(row)" />
-              <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" title="Delete entry" @click.stop="replicon.remove(row.id!)" />
+              <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" title="Delete entry" :loading="deletingId === row.id" :disabled="deletingId !== null" @click.stop="deleteEntry(row.id!)" />
             </td>
           </tr>
         </template>
@@ -119,6 +120,8 @@ const editDialog  = ref(false)
 const editEntry   = ref<TimeEntry | null>(null)
 const splitDialog = ref(false)
 const splitEntry  = ref<TimeEntry | null>(null)
+const deletingId  = ref<string | null>(null)
+const togglingId  = ref<string | null>(null)
 
 interface PrefillData { projectId: string | null; taskId: string | null; description: string; subDescription: string }
 const prefillData = ref<PrefillData | null>(null)
@@ -251,8 +254,22 @@ function rowClass(row: DisplayRow) {
   return ''
 }
 
+async function deleteEntry(id: string) {
+  deletingId.value = id
+  try {
+    await replicon.remove(id)
+  } finally {
+    deletingId.value = null
+  }
+}
+
 async function toggleLogged(id: string, value: boolean) {
-  await replicon.update(id, { logged: value })
+  togglingId.value = id
+  try {
+    await replicon.update(id, { logged: value })
+  } finally {
+    togglingId.value = null
+  }
 }
 
 function openEdit(id: string) {

@@ -59,8 +59,8 @@
           Cascade {{ cascadeDelta > 0 ? '+' : '' }}{{ cascadeDelta }}m to {{ cascadeCount }} row{{ cascadeCount !== 1 ? 's' : '' }}
         </v-btn>
         <v-spacer />
-        <v-btn variant="text" @click="model = false">Cancel</v-btn>
-        <v-btn color="primary" @click="save(false)">Save Changes</v-btn>
+        <v-btn variant="text" :disabled="saving" @click="model = false">Cancel</v-btn>
+        <v-btn color="primary" :loading="saving" @click="save(false)">Save Changes</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -77,6 +77,8 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
 
 const replicon = useRepliconStore()
+
+const saving = ref(false)
 
 const model = computed({
   get: () => props.modelValue,
@@ -153,37 +155,41 @@ function calcDuration() {
 
 async function save(cascade: boolean) {
   if (!props.entry) return
+  saving.value = true
+  try {
+    const project = replicon.projects.find(p => p.id === form.projectId)
+    const task    = project?.tasks.find(t => t.id === form.taskId)
 
-  const project = replicon.projects.find(p => p.id === form.projectId)
-  const task    = project?.tasks.find(t => t.id === form.taskId)
-
-  if (cascade && cascadeDelta.value !== 0) {
-    const affected = replicon.entries.filter(e =>
-      e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
-    )
-    for (const ae of affected) {
-      await replicon.update(ae.id, {
-        ...ae,
-        start:  minutesToHHMM(timeToMinutes(ae.start!) + cascadeDelta.value),
-        finish: ae.finish ? minutesToHHMM(timeToMinutes(ae.finish) + cascadeDelta.value) : ae.finish,
-      })
+    if (cascade && cascadeDelta.value !== 0) {
+      const affected = replicon.entries.filter(e =>
+        e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
+      )
+      for (const ae of affected) {
+        await replicon.update(ae.id, {
+          ...ae,
+          start:  minutesToHHMM(timeToMinutes(ae.start!) + cascadeDelta.value),
+          finish: ae.finish ? minutesToHHMM(timeToMinutes(ae.finish) + cascadeDelta.value) : ae.finish,
+        })
+      }
     }
+
+    await replicon.update(props.entry.id, {
+      project:         project?.code ?? props.entry.project ?? '',
+      subProject:      task?.name    ?? props.entry.subProject ?? '',
+      repliconTaskId:  form.taskId,
+      description:     form.description,
+      subDescription:  form.subDescription,
+      date:            form.date,
+      start:           form.start,
+      finish:          form.finish,
+      duration:        form.duration,
+      durationMinutes: form.durationMinutes,
+      logged:          form.logged,
+    })
+
+    model.value = false
+  } finally {
+    saving.value = false
   }
-
-  await replicon.update(props.entry.id, {
-    project:         project?.code ?? props.entry.project ?? '',
-    subProject:      task?.name    ?? props.entry.subProject ?? '',
-    repliconTaskId:  form.taskId,
-    description:     form.description,
-    subDescription:  form.subDescription,
-    date:            form.date,
-    start:           form.start,
-    finish:          form.finish,
-    duration:        form.duration,
-    durationMinutes: form.durationMinutes,
-    logged:          form.logged,
-  })
-
-  model.value = false
 }
 </script>

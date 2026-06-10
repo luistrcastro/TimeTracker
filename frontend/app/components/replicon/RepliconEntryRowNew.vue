@@ -69,7 +69,7 @@
       <v-checkbox-btn v-model="form.logged" :color="form.logged ? 'success' : undefined" density="compact" hide-details />
     </td>
     <td>
-      <v-btn size="x-small" color="primary" :disabled="!canSave" @click="save" >Save</v-btn>
+      <v-btn size="x-small" color="primary" :disabled="!canSave || saving" :loading="saving" @click="save">Save</v-btn>
       <v-btn size="x-small" variant="text" @click="clear(null)">Clear</v-btn>
     </td>
   </tr>
@@ -126,6 +126,8 @@ function timeToMinutes(hhmm: string) {
   return h * 60 + m
 }
 
+const saving = ref(false)
+
 const canSave = computed(() => !!form.description && !!form.start && !!form.finish)
 
 function focusNext(field: string) {
@@ -135,25 +137,29 @@ function focusNext(field: string) {
 
 async function save() {
   if (!canSave.value) return
+  saving.value = true
+  try {
+    const project = replicon.projects.find(p => p.id === form.projectId)
+    const task    = project?.tasks.find(t => t.id === form.taskId)
 
-  const project = replicon.projects.find(p => p.id === form.projectId)
-  const task    = project?.tasks.find(t => t.id === form.taskId)
+    await replicon.create({
+      date:            ui.currentDate,
+      project:         project?.code ?? '',
+      subProject:      task?.name ?? '',
+      repliconTaskId:  form.taskId ?? null,
+      description:     form.description,
+      subDescription:  form.subDescription,
+      start:           form.start,
+      finish:          form.finish,
+      duration:        form.duration,
+      durationMinutes: form.durationMinutes,
+      logged:          form.logged,
+    })
 
-  await replicon.create({
-    date:            ui.currentDate,
-    project:         project?.code ?? '',
-    subProject:      task?.name ?? '',
-    repliconTaskId:  form.taskId ?? null,
-    description:     form.description,
-    subDescription:  form.subDescription,
-    start:           form.start,
-    finish:          form.finish,
-    duration:        form.duration,
-    durationMinutes: form.durationMinutes,
-    logged:          form.logged,
-  })
-
-  clear(form.finish)
+    clear(form.finish)
+  } finally {
+    saving.value = false
+  }
 }
 
 function clear(startTime: string|null) {

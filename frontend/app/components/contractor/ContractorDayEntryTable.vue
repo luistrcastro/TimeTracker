@@ -52,7 +52,7 @@
             <td class="actions-cell">
               <v-btn icon="mdi-pencil"       size="x-small" variant="text" @click.stop="guardedEdit(row.id!)" />
               <v-btn icon="mdi-content-copy" size="x-small" variant="text" title="Prefill entry row" @click.stop="prefillRow(row)" />
-              <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" @click.stop="guardedDelete(row.id!)" />
+              <v-btn icon="mdi-delete"       size="x-small" variant="text" color="error" :loading="deletingId === row.id" :disabled="deletingId !== null" @click.stop="guardedDelete(row.id!)" />
             </td>
           </tr>
         </template>
@@ -99,8 +99,9 @@ const ui = useUiStore()
 const fmt = useTimeFormat()
 const { detectGapsAndOverlaps } = useGapOverlap()
 
-const editDialog = ref(false)
-const editEntry  = ref<TimeEntry | null>(null)
+const editDialog  = ref(false)
+const editEntry   = ref<TimeEntry | null>(null)
+const deletingId  = ref<string | null>(null)
 
 interface PrefillData { clientId: string | null; taskId: string | null; description: string }
 const prefillData = ref<PrefillData | null>(null)
@@ -261,8 +262,17 @@ function guardedEdit(id: string) {
   guardEntry(id, () => openEdit(id))
 }
 
+async function deleteEntry(id: string) {
+  deletingId.value = id
+  try {
+    await contractor.remove(id)
+  } finally {
+    deletingId.value = null
+  }
+}
+
 function guardedDelete(id: string) {
-  guardEntry(id, () => contractor.remove(id))
+  guardEntry(id, () => deleteEntry(id))
 }
 
 function confirmWarn() {

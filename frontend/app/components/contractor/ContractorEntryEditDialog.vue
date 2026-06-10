@@ -54,8 +54,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="model = false">Cancel</v-btn>
-        <v-btn color="primary" @click="save(false)">Save Changes</v-btn>
+        <v-btn variant="text" :disabled="saving" @click="model = false">Cancel</v-btn>
+        <v-btn color="primary" :loading="saving" @click="save(false)">Save Changes</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -72,6 +72,8 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
 
 const contractor = useContractorStore()
+
+const saving = ref(false)
 
 const model = computed({
   get: () => props.modelValue,
@@ -154,36 +156,40 @@ function handleEnter(e: KeyboardEvent) {
 
 async function save(cascade: boolean) {
   if (!props.entry) return
+  saving.value = true
+  try {
+    const task = contractor.clients
+      .find(c => c.id === form.clientId)?.tasks
+      ?.find(t => t.id === form.taskId)
 
-  const task = contractor.clients
-    .find(c => c.id === form.clientId)?.tasks
-    ?.find(t => t.id === form.taskId)
-
-  if (cascade && cascadeDelta.value !== 0) {
-    const affected = contractor.entries.filter(e =>
-      e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
-    )
-    for (const ae of affected) {
-      await contractor.update(ae.id, {
-        start:  minutesToHHMM(timeToMinutes(ae.start!) + cascadeDelta.value),
-        finish: ae.finish ? minutesToHHMM(timeToMinutes(ae.finish) + cascadeDelta.value) : ae.finish,
-      })
+    if (cascade && cascadeDelta.value !== 0) {
+      const affected = contractor.entries.filter(e =>
+        e.date === form.date && e.id !== props.entry!.id && e.start && e.start >= originalFinish.value
+      )
+      for (const ae of affected) {
+        await contractor.update(ae.id, {
+          start:  minutesToHHMM(timeToMinutes(ae.start!) + cascadeDelta.value),
+          finish: ae.finish ? minutesToHHMM(timeToMinutes(ae.finish) + cascadeDelta.value) : ae.finish,
+        })
+      }
     }
+
+    await contractor.update(props.entry.id, {
+      clientId:        form.clientId,
+      clientTaskId:    form.taskId,
+      task:            task?.name ?? props.entry.task ?? '',
+      description:     form.description,
+      subDescription:  form.subDescription,
+      date:            form.date,
+      start:           form.start,
+      finish:          form.finish,
+      duration:        form.duration,
+      durationMinutes: form.durationMinutes,
+    })
+
+    model.value = false
+  } finally {
+    saving.value = false
   }
-
-  await contractor.update(props.entry.id, {
-    clientId:        form.clientId,
-    clientTaskId:    form.taskId,
-    task:            task?.name ?? props.entry.task ?? '',
-    description:     form.description,
-    subDescription:  form.subDescription,
-    date:            form.date,
-    start:           form.start,
-    finish:          form.finish,
-    duration:        form.duration,
-    durationMinutes: form.durationMinutes,
-  })
-
-  model.value = false
 }
 </script>
