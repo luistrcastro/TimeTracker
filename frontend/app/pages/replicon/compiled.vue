@@ -19,8 +19,24 @@
       </thead>
       <tbody>
         <tr v-for="row in compiledRows" :key="row.key">
-          <td>{{ row.project }}</td>
-          <td>{{ row.subProject }}</td>
+          <td>
+            <v-tooltip :text="projectNameByCode[row.project]" location="top" :disabled="!projectNameByCode[row.project]">
+              <template #activator="{ props }">
+                <span v-bind="props">{{ row.project }}</span>
+              </template>
+            </v-tooltip>
+          </td>
+          <td>
+            <v-tooltip
+              :text="row.repliconTaskId && taskPathById[row.repliconTaskId]?.length ? taskPathById[row.repliconTaskId].join(' › ') : undefined"
+              location="top"
+              :disabled="!row.repliconTaskId || !taskPathById[row.repliconTaskId ?? '']?.length"
+            >
+              <template #activator="{ props }">
+                <span v-bind="props">{{ row.subProject }}</span>
+              </template>
+            </v-tooltip>
+          </td>
           <td>
             {{ row.hoursDecimal }}
             <v-icon v-if="submitResultMap[row.key] === 'ok'" color="success" size="small">mdi-check-circle</v-icon>
@@ -61,11 +77,21 @@ const dayEntries = computed(() =>
     .sort((a, b) => (a.start ?? '') > (b.start ?? '') ? 1 : -1)
 )
 
+const projectNameByCode = computed(() =>
+  Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
+)
+
+const taskPathById = computed(() => {
+  const map: Record<string, string[]> = {}
+  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = t.path }))
+  return map
+})
+
 const compiledRows = computed(() => {
-  const map = new Map<string, { project: string; subProject: string; minutes: number; parts: string[] }>()
+  const map = new Map<string, { project: string; subProject: string; repliconTaskId: string | null; minutes: number; parts: string[] }>()
   dayEntries.value.forEach(e => {
     const key = `${e.project ?? ''}::${e.subProject ?? ''}`
-    if (!map.has(key)) map.set(key, { project: e.project ?? '', subProject: e.subProject ?? '', minutes: 0, parts: [] })
+    if (!map.has(key)) map.set(key, { project: e.project ?? '', subProject: e.subProject ?? '', repliconTaskId: e.repliconTaskId ?? null, minutes: 0, parts: [] })
     const row = map.get(key)!
     row.minutes += e.durationMinutes ?? 0
     const dec = minutesToDecimal(e.durationMinutes ?? 0)
@@ -75,6 +101,7 @@ const compiledRows = computed(() => {
     key,
     project: v.project,
     subProject: v.subProject,
+    repliconTaskId: v.repliconTaskId,
     hoursDecimal: minutesToDecimal(v.minutes),
     comments: v.parts.join(', '),
   }))
@@ -113,7 +140,7 @@ async function submit() {
 }
 
 onMounted(async () => {
-  await Promise.all([replicon.loadEntries(), replicon.loadCredentials(), replicon.loadRowMap()])
+  await Promise.all([replicon.loadEntries(), replicon.loadCredentials(), replicon.loadRowMap(), replicon.loadProjects()])
 })
 watch(() => ui.currentDate, () => replicon.loadEntries(ui.currentDate))
 </script>

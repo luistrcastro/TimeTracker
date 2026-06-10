@@ -20,8 +20,24 @@
         </thead>
         <tbody>
           <tr v-for="e in day.entries" :key="e.id">
-            <td>{{ e.project }}</td>
-            <td>{{ e.subProject }}</td>
+            <td>
+              <v-tooltip :text="projectNameByCode[e.project ?? '']" location="top" :disabled="!projectNameByCode[e.project ?? '']">
+                <template #activator="{ props }">
+                  <span v-bind="props">{{ e.project }}</span>
+                </template>
+              </v-tooltip>
+            </td>
+            <td>
+              <v-tooltip
+                :text="e.repliconTaskId && taskPathById[e.repliconTaskId]?.length ? taskPathById[e.repliconTaskId].join(' › ') : undefined"
+                location="top"
+                :disabled="!e.repliconTaskId || !taskPathById[e.repliconTaskId ?? '']?.length"
+              >
+                <template #activator="{ props }">
+                  <span v-bind="props">{{ e.subProject }}</span>
+                </template>
+              </v-tooltip>
+            </td>
             <td>{{ e.description }}{{ e.subDescription ? ' — ' + e.subDescription : '' }}</td>
             <td>{{ fmt.formatTime(e.start) }}</td>
             <td>{{ fmt.formatTime(e.finish) }}</td>
@@ -42,6 +58,16 @@ const replicon = useRepliconStore()
 const fmt = useTimeFormat()
 
 useShortcuts()
+
+const projectNameByCode = computed(() =>
+  Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
+)
+
+const taskPathById = computed(() => {
+  const map: Record<string, string[]> = {}
+  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = t.path }))
+  return map
+})
 
 const weekStart = computed(() => {
   const d = new Date(ui.currentDate + 'T00:00:00')
@@ -86,5 +112,5 @@ function nextWeek() {
   ui.setDate(d.toISOString().slice(0, 10))
 }
 
-onMounted(() => replicon.loadEntries())
+onMounted(() => Promise.all([replicon.loadEntries(), replicon.loadProjects()]))
 </script>

@@ -1,24 +1,26 @@
 <template>
   <v-tooltip :text="selectedPath" location="top" :disabled="!selectedPath">
     <template #activator="{ props: tooltipProps }">
-      <v-autocomplete
-        :model-value="modelValue"
-        :items="taskOptions"
-        item-title="name"
-        item-value="id"
-        density="compact"
-        clearable
-        :disabled="!taskOptions.length"
-        v-bind="{ ...$attrs, ...tooltipProps }"
-        @update:model-value="$emit('update:modelValue', $event)"
-      >
-        <template #item="{ props, item }">
-          <v-list-item
-            v-bind="props"
-            :subtitle="item.raw.path?.length ? item.raw.path.join(' › ') : undefined"
-          />
-        </template>
-      </v-autocomplete>
+      <div v-bind="tooltipProps">
+        <v-autocomplete
+          :model-value="modelValue"
+          :items="taskOptions"
+          item-title="name"
+          item-value="id"
+          density="compact"
+          clearable
+          :disabled="!taskOptions.length"
+          v-bind="$attrs"
+          @update:model-value="$emit('update:modelValue', $event)"
+        >
+          <template #item="{ props, item }">
+            <v-list-item
+              v-bind="props"
+              :subtitle="item.raw.path?.length ? item.raw.path.join(' › ') : undefined"
+            />
+          </template>
+        </v-autocomplete>
+      </div>
     </template>
   </v-tooltip>
 </template>
