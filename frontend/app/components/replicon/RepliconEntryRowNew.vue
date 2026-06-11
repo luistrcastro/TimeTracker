@@ -66,7 +66,7 @@
     <td class="text-body-2">{{ form.duration }}</td>
     <td></td>
     <td>
-      <v-checkbox-btn v-model="form.logged" :color="form.logged ? 'success' : undefined" density="compact" hide-details />
+      <v-checkbox-btn v-model="form.logged" :color="form.logged ? 'success' : undefined" density="compact" hide-details @keydown.enter.prevent="form.logged = !form.logged" />
     </td>
     <td>
       <v-btn size="x-small" color="primary" :disabled="!canSave || saving" :loading="saving" @click="save">Save</v-btn>
