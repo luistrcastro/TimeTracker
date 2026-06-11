@@ -17,6 +17,9 @@ export function useApi() {
         auth.token = null
         auth.user = null
         await router.push('/login')
+      } else if (response.status >= 500) {
+        const ui = useUiStore()
+        ui.showError('Something took a wrong turn. Please try again.')
       }
     },
   })

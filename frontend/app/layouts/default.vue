@@ -134,6 +134,9 @@
 				</v-card-actions>
 			</v-card>
 		</v-dialog>
+		<v-snackbar v-model="ui.errorSnackbar" color="error" :timeout="5000" location="bottom right">
+			{{ ui.errorMsg }}
+		</v-snackbar>
 	</v-app>
 </template>
 

@@ -77,12 +77,12 @@ class EntriesController extends Controller
 
         $entry->update([
             'date'             => $data['date']            ?? $entry->date,
-            'project'          => $data['project']         ?? $entry->project,
-            'sub_project'      => $data['subProject']      ?? $entry->sub_project,
+            'project'          => array_key_exists('project', $data) ? ($data['project'] ?? '') : $entry->project,
+            'sub_project'      => array_key_exists('subProject', $data) ? ($data['subProject'] ?? '') : $entry->sub_project,
             'replicon_task_id' => array_key_exists('repliconTaskId', $data) ? $data['repliconTaskId'] : $entry->replicon_task_id,
             'description'      => $data['description']     ?? $entry->description,
-            'sub_description'  => $data['subDescription']  ?? $entry->sub_description,
-            'further_info'     => $data['furtherInfo']     ?? $entry->further_info,
+            'sub_description'  => array_key_exists('subDescription', $data) ? ($data['subDescription'] ?? '') : $entry->sub_description,
+            'further_info'     => array_key_exists('furtherInfo', $data) ? ($data['furtherInfo'] ?? '') : $entry->further_info,
             'start'            => $data['start']           ?? $entry->start,
             'finish'           => $data['finish']          ?? $entry->finish,
             'duration_minutes' => $data['durationMinutes'] ?? $entry->duration_minutes,

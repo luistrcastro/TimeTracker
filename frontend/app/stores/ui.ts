@@ -12,6 +12,8 @@ export const useUiStore = defineStore('ui', {
     jiraPattern: 'PROJ-\\d+',
     activeVariant: 'replicon' as 'replicon' | 'contractor',
     shortcutsDialog: false,
+    errorSnackbar: false,
+    errorMsg: '',
   }),
 
   actions: {
@@ -52,6 +54,10 @@ export const useUiStore = defineStore('ui', {
     async saveToServer() {
       const { save } = useUserCustomization()
       await save({ ui: { theme: this.theme, use12h: this.use12h, activeVariant: this.activeVariant } })
+    },
+    showError(msg: string) {
+      this.errorMsg = msg
+      this.errorSnackbar = true
     },
     _debouncedSave() {
       if (_uiSaveTimer) clearTimeout(_uiSaveTimer)
