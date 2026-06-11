@@ -180,4 +180,5 @@ function clear(startTime: string|null) {
 
 <style scoped>
 .new-row td { background: rgba(0,0,0,.02); }
+.new-row :deep(input[type="time"]::-webkit-calendar-picker-indicator) { display: none; }
 </style>
