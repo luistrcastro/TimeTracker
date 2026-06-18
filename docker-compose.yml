@@ -5,9 +5,9 @@ services:
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
 
-  mailpit:
-    image: axllent/mailpit
-    ports: ["1025:1025", "8025:8025"]
+#  mailpit:
+#    image: axllent/mailpit
+#    ports: ["1025:1025", "8025:8025"]
 
   laravel:
     build: { context: ./backend, target: dev }
@@ -15,7 +15,8 @@ services:
     env_file: ./backend/.env
     volumes: ["./backend:/app"]
     ports: ["8020:8020"]
-    depends_on: [postgres, mailpit]
+    depends_on: [postgres]
+#    depends_on: [postgres, mailpit]
 
   queue:
     build: { context: ./backend, target: dev }

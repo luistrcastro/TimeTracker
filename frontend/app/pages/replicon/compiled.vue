@@ -81,6 +81,10 @@ const projectNameByCode = computed(() =>
   Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
 )
 
+const projectIdByCode = computed(() =>
+  Object.fromEntries(replicon.projects.map(p => [p.code, p.id]))
+)
+
 const taskPathById = computed(() => {
   const map: Record<string, string[]> = {}
   replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = t.path }))
@@ -90,7 +94,7 @@ const taskPathById = computed(() => {
 const compiledRows = computed(() => {
   const map = new Map<string, { project: string; subProject: string; repliconTaskId: string | null; minutes: number; parts: string[] }>()
   dayEntries.value.forEach(e => {
-    const key = `${e.project ?? ''}::${e.subProject ?? ''}`
+    const key = `${e.project ?? ''}::${e.repliconTaskId ?? e.subProject ?? ''}`
     if (!map.has(key)) map.set(key, { project: e.project ?? '', subProject: e.subProject ?? '', repliconTaskId: e.repliconTaskId ?? null, minutes: 0, parts: [] })
     const row = map.get(key)!
     row.minutes += e.durationMinutes ?? 0
@@ -122,7 +126,7 @@ async function submit() {
   const rows = compiledRows.value.map(r => ({
     projectId: r.project,
     taskId: r.subProject,
-    rowIndex: replicon.rowMap[`${r.project}:${r.subProject}`] ?? 0,
+    rowIndex: replicon.rowMap[`${projectIdByCode.value[r.project]}:${r.repliconTaskId}`] ?? 0,
     hours: r.hoursDecimal,
     comment: r.comments,
   }))
