@@ -69,7 +69,7 @@ watch(() => props.modelValue, (open) => {
   if (open) {
     const yesterday = new Date(ui.currentDate + 'T00:00:00')
     yesterday.setDate(yesterday.getDate() - 1)
-    pickerDate.value = yesterday.toISOString().slice(0, 10)
+    pickerDate.value = yesterday.toLocaleDateString('en-CA')
     selected.value = new Set()
   }
 })
@@ -103,7 +103,7 @@ function toggleAll() {
 function shiftDate(delta: number) {
   const d = new Date(pickerDate.value + 'T00:00:00')
   d.setDate(d.getDate() + delta)
-  pickerDate.value = d.toISOString().slice(0, 10)
+  pickerDate.value = d.toLocaleDateString('en-CA')
 }
 
 function confirm() {

@@ -156,8 +156,8 @@ const weekTotal = computed(() => {
   sat.setDate(d.getDate() - daysSinceSat)
   const fri = new Date(sat)
   fri.setDate(sat.getDate() + 6)
-  const start = sat.toISOString().slice(0, 10)
-  const end = fri.toISOString().slice(0, 10)
+  const start = sat.toLocaleDateString('en-CA')
+  const end = fri.toLocaleDateString('en-CA')
   const total = replicon.entries
     .filter(e => e.date >= start && e.date <= end)
     .reduce((s, e) => s + (e.durationMinutes ?? 0), 0)

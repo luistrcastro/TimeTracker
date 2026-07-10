@@ -110,7 +110,8 @@ watch(() => props.prefill, (p) => {
 
 function calcDuration() {
   if (form.start && form.finish) {
-    const diff = timeToMinutes(form.finish) - timeToMinutes(form.start)
+    let diff = timeToMinutes(form.finish) - timeToMinutes(form.start)
+    if (diff < 0) diff += 24 * 60
     if (diff > 0) {
       form.durationMinutes = diff
       form.duration = `${Math.floor(diff / 60)}:${String(diff % 60).padStart(2, '0')}`

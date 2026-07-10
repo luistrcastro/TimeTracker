@@ -81,7 +81,7 @@ const weekDays = computed(() =>
   Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart.value)
     d.setDate(d.getDate() + i)
-    const date = d.toISOString().slice(0, 10)
+    const date = d.toLocaleDateString('en-CA')
     const entries = replicon.entries.filter(e => e.date === date)
       .sort((a, b) => (a.start ?? '') > (b.start ?? '') ? 1 : -1)
     const totalMins = entries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
@@ -103,13 +103,13 @@ const weekLabel = computed(() => {
 function prevWeek() {
   const d = new Date(ui.currentDate + 'T00:00:00')
   d.setDate(d.getDate() - 7)
-  ui.setDate(d.toISOString().slice(0, 10))
+  ui.setDate(d.toLocaleDateString('en-CA'))
 }
 
 function nextWeek() {
   const d = new Date(ui.currentDate + 'T00:00:00')
   d.setDate(d.getDate() + 7)
-  ui.setDate(d.toISOString().slice(0, 10))
+  ui.setDate(d.toLocaleDateString('en-CA'))
 }
 
 onMounted(() => Promise.all([replicon.loadEntries(), replicon.loadProjects()]))

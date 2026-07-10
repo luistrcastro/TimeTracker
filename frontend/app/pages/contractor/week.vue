@@ -70,7 +70,7 @@ const weekDays = computed(() => {
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart.value)
     d.setDate(d.getDate() + i)
-    const date = d.toISOString().slice(0, 10)
+    const date = d.toLocaleDateString('en-CA')
     const entries = contractor.entries
       .filter(e => e.date === date)
       .sort((a, b) => (a.start ?? '') > (b.start ?? '') ? 1 : -1)
@@ -105,13 +105,13 @@ function accFor(entries: TimeEntry[], id: string) {
 function prevWeek() {
   const d = new Date(ui.currentDate + 'T00:00:00')
   d.setDate(d.getDate() - 7)
-  ui.setDate(d.toISOString().slice(0, 10))
+  ui.setDate(d.toLocaleDateString('en-CA'))
 }
 
 function nextWeek() {
   const d = new Date(ui.currentDate + 'T00:00:00')
   d.setDate(d.getDate() + 7)
-  ui.setDate(d.toISOString().slice(0, 10))
+  ui.setDate(d.toLocaleDateString('en-CA'))
 }
 
 onMounted(async () => {

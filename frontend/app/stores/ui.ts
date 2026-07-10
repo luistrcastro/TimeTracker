@@ -6,7 +6,7 @@ export const useUiStore = defineStore('ui', {
   state: () => ({
     theme: 'light' as 'light' | 'dark',
     use12h: false,
-    currentDate: new Date().toISOString().slice(0, 10),
+    currentDate: new Date().toLocaleDateString('en-CA'),
     sortCol: null as 'project' | 'subProject' | 'start' | null,
     sortDir: null as 'asc' | 'desc' | null,
     jiraPattern: 'PROJ-\\d+',

@@ -148,8 +148,8 @@ const weekTotal = computed(() => {
   weekStart.setDate(d.getDate() + satOffset)
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekStart.getDate() + 6)
-  const start = weekStart.toISOString().slice(0, 10)
-  const end = weekEnd.toISOString().slice(0, 10)
+  const start = weekStart.toLocaleDateString('en-CA')
+  const end = weekEnd.toLocaleDateString('en-CA')
   const total = contractor.entries
     .filter(e => e.date >= start && e.date <= end)
     .reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
@@ -284,17 +284,17 @@ function confirmWarn() {
 function prevDay() {
   const d = new Date(ui.currentDate + 'T00:00:00')
   d.setDate(d.getDate() - 1)
-  ui.setDate(d.toISOString().slice(0, 10))
+  ui.setDate(d.toLocaleDateString('en-CA'))
 }
 
 function nextDay() {
   const d = new Date(ui.currentDate + 'T00:00:00')
   d.setDate(d.getDate() + 1)
-  ui.setDate(d.toISOString().slice(0, 10))
+  ui.setDate(d.toLocaleDateString('en-CA'))
 }
 
 function goToday() {
-  ui.setDate(new Date().toISOString().slice(0, 10))
+  ui.setDate(new Date().toLocaleDateString('en-CA'))
 }
 
 onMounted(async () => {

@@ -22,13 +22,13 @@ export function useShortcuts() {
 
     switch (e.key) {
       case 'ArrowLeft': {
-        const d = new Date(ui.currentDate); d.setDate(d.getDate() - 1)
-        ui.setDate(d.toISOString().slice(0, 10))
+        const d = new Date(ui.currentDate + 'T00:00:00'); d.setDate(d.getDate() - 1)
+        ui.setDate(d.toLocaleDateString('en-CA'))
         break
       }
       case 'ArrowRight': {
-        const d = new Date(ui.currentDate); d.setDate(d.getDate() + 1)
-        ui.setDate(d.toISOString().slice(0, 10))
+        const d = new Date(ui.currentDate + 'T00:00:00'); d.setDate(d.getDate() + 1)
+        ui.setDate(d.toLocaleDateString('en-CA'))
         break
       }
       case '[': {
@@ -45,7 +45,7 @@ export function useShortcuts() {
       }
       case 't':
       case 'T':
-        ui.setDate(new Date().toISOString().slice(0, 10))
+        ui.setDate(new Date().toLocaleDateString('en-CA'))
         break
       case '?':
         ui.shortcutsDialog = !ui.shortcutsDialog

@@ -96,7 +96,7 @@ const uninvoiced = ref<TimeEntry[]>([])
 const selected = ref(new Set<string>())
 const feedback = ref<{ type: 'error' | 'info'; text: string } | null>(null)
 
-const today = new Date().toISOString().slice(0, 10)
+const today = new Date().toLocaleDateString('en-CA')
 const form = reactive({
   clientName: '',
   rate: contractor.company?.defaultRate ?? 0,
