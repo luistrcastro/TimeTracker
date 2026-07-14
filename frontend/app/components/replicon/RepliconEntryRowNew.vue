@@ -41,9 +41,8 @@
       />
     </td>
     <td>
-      <v-text-field
+      <TimeField
         v-model="form.start"
-        type="time"
         density="compact"
         variant="underlined"
         hide-details
@@ -52,9 +51,8 @@
       />
     </td>
     <td>
-      <v-text-field
+      <TimeField
         v-model="form.finish"
-        type="time"
         density="compact"
         variant="underlined"
         hide-details

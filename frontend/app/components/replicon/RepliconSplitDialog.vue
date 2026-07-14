@@ -55,10 +55,10 @@
                 <v-text-field v-model="row.subDescription" variant="underlined" hide-details placeholder="Sub-description" density="compact" />
               </td>
               <td class="split-cell-time">
-                <v-text-field v-model="row.start" type="time" variant="underlined" hide-details density="compact" />
+                <TimeField v-model="row.start" variant="underlined" hide-details density="compact" />
               </td>
               <td class="split-cell-time">
-                <v-text-field v-model="row.finish" type="time" variant="underlined" hide-details density="compact" />
+                <TimeField v-model="row.finish" variant="underlined" hide-details density="compact" />
               </td>
               <td class="text-body-2">{{ rowDuration(row) }}</td>
               <td>

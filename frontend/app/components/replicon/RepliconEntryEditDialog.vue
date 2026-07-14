@@ -33,10 +33,10 @@
             <v-text-field v-model="form.subDescription" label="Sub-description" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="4">
-            <v-text-field v-model="form.start" type="time" label="Start" variant="outlined" density="compact" @input="calcDuration" />
+            <TimeField v-model="form.start" label="Start" variant="outlined" density="compact" @input="calcDuration" />
           </v-col>
           <v-col cols="4">
-            <v-text-field v-model="form.finish" type="time" label="Finish" variant="outlined" density="compact" @input="calcDuration" />
+            <TimeField v-model="form.finish" label="Finish" variant="outlined" density="compact" @input="calcDuration" />
           </v-col>
           <v-col cols="4">
             <v-text-field :model-value="form.duration" label="Duration" variant="outlined" density="compact" readonly />
