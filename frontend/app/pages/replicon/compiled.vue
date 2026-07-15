@@ -92,14 +92,14 @@ const taskPathById = computed(() => {
 })
 
 const compiledRows = computed(() => {
-  const map = new Map<string, { project: string; subProject: string; repliconTaskId: string | null; minutes: number; parts: string[] }>()
+  const map = new Map<string, { project: string; subProject: string; repliconTaskId: string | null; minutes: number; commentMinutes: Map<string, number> }>()
   dayEntries.value.forEach(e => {
     const key = `${e.project ?? ''}::${e.repliconTaskId ?? e.subProject ?? ''}`
-    if (!map.has(key)) map.set(key, { project: e.project ?? '', subProject: e.subProject ?? '', repliconTaskId: e.repliconTaskId ?? null, minutes: 0, parts: [] })
+    if (!map.has(key)) map.set(key, { project: e.project ?? '', subProject: e.subProject ?? '', repliconTaskId: e.repliconTaskId ?? null, minutes: 0, commentMinutes: new Map() })
     const row = map.get(key)!
     row.minutes += e.durationMinutes ?? 0
-    const dec = minutesToDecimal(e.durationMinutes ?? 0)
-    row.parts.push(`(${dec}) ${e.description}${e.subDescription ? ' - ' + e.subDescription : ''}`)
+    const commentText = `${e.description}${e.subDescription ? ' - ' + e.subDescription : ''}`
+    row.commentMinutes.set(commentText, (row.commentMinutes.get(commentText) ?? 0) + (e.durationMinutes ?? 0))
   })
   return [...map.entries()].map(([key, v]) => ({
     key,
@@ -107,7 +107,7 @@ const compiledRows = computed(() => {
     subProject: v.subProject,
     repliconTaskId: v.repliconTaskId,
     hoursDecimal: minutesToDecimal(v.minutes),
-    comments: v.parts.join(', '),
+    comments: [...v.commentMinutes.entries()].map(([text, mins]) => `(${minutesToDecimal(mins)}) ${text}`).join(', '),
   }))
 })
 
