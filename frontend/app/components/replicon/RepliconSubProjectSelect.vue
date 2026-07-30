@@ -10,6 +10,8 @@
           density="compact"
           clearable
           :disabled="!taskOptions.length"
+          v-model:search="search"
+          :auto-select-first="isSingleMatch"
           v-bind="$attrs"
           @update:model-value="$emit('update:modelValue', $event)"
         >
@@ -47,4 +49,7 @@ const selectedPath = computed(() => {
   const task = taskOptions.value.find(t => t.id === props.modelValue)
   return task?.path?.length ? task.path.join(' › ') : ''
 })
+
+const search = ref('')
+const isSingleMatch = useSingleMatchAutocomplete(taskOptions, search, t => t.name)
 </script>
