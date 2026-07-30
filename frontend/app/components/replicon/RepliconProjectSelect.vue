@@ -6,6 +6,8 @@
     item-value="id"
     density="compact"
     clearable
+    v-model:search="search"
+    :auto-select-first="isSingleMatch"
     v-bind="$attrs"
     @update:model-value="$emit('update:modelValue', $event)"
   >
@@ -26,4 +28,7 @@ const replicon = useRepliconStore()
 const projectOptions = computed(() =>
   replicon.projects.map(p => ({ id: p.id, label: p.code, name: p.name }))
 )
+
+const search = ref('')
+const isSingleMatch = useSingleMatchAutocomplete(projectOptions, search, p => p.label)
 </script>

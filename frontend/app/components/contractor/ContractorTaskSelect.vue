@@ -8,6 +8,7 @@
     clearable
     :disabled="!clientId"
     v-model:search="search"
+    :auto-select-first="isSingleMatch"
     v-bind="$attrs"
     @update:model-value="$emit('update:modelValue', $event)"
   >
@@ -41,6 +42,8 @@ const taskOptions = computed(() => {
   const client = contractor.clients.find(c => c.id === props.clientId)
   return client?.tasks ?? []
 })
+
+const isSingleMatch = useSingleMatchAutocomplete(taskOptions, search, t => t.name)
 
 async function createTask() {
   if (!props.clientId || !search.value?.trim()) return
