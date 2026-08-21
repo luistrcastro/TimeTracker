@@ -41,7 +41,8 @@ const replicon = useRepliconStore()
 
 const taskOptions = computed(() => {
   const project = replicon.projects.find(p => p.id === props.projectId)
-  return project?.tasks ?? []
+  const tasks = project?.tasks ?? []
+  return tasks.filter(t => t.isActive || t.id === props.modelValue)
 })
 
 const selectedPath = computed(() => {

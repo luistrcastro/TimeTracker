@@ -9,11 +9,11 @@ class RepliconTask extends Model
 {
     use HasUuidV7;
 
-    protected $fillable = ['replicon_project_id', 'replicon_task_id', 'name', 'path'];
+    protected $fillable = ['replicon_project_id', 'replicon_task_id', 'name', 'path', 'is_active'];
 
     protected function casts(): array
     {
-        return ['path' => 'array'];
+        return ['path' => 'array', 'is_active' => 'boolean'];
     }
 
     public function project()

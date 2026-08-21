@@ -21,11 +21,13 @@ class ProjectsCacheController extends Controller
                     'code'       => $p->code,
                     'name'       => $p->name,
                     'syncedAt'   => $p->synced_at?->toISOString(),
+                    'isActive'   => $p->is_active,
                     'tasks'      => $p->tasks->map(fn($t) => [
                         'id'             => $t->id,
                         'repliconTaskId' => $t->replicon_task_id,
                         'name'           => $t->name,
                         'path'           => $t->path ?? [],
+                        'isActive'       => $t->is_active,
                     ]),
                 ];
             });

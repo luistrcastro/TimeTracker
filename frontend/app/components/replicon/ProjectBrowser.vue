@@ -49,7 +49,11 @@
         <v-list v-else v-model:opened="opened" density="compact" lines="one" style="max-height:320px;overflow-y:auto">
           <v-list-group v-for="proj in filteredProjects" :key="proj.id" :value="proj.id">
             <template #activator="{ props }">
-              <v-list-item v-bind="props" :title="`[${proj.code}] ${proj.name}`" />
+              <v-list-item v-bind="props" :title="`[${proj.code}] ${proj.name}`">
+                <template #append>
+                  <ActiveStatusIcon :active="proj.isActive" />
+                </template>
+              </v-list-item>
             </template>
             <v-list-item
               v-for="task in proj.tasks"
@@ -57,7 +61,11 @@
               :title="task.name"
               density="compact"
               class="pl-8 text-caption"
-            />
+            >
+              <template #append>
+                <ActiveStatusIcon :active="task.isActive" />
+              </template>
+            </v-list-item>
           </v-list-group>
         </v-list>
       </template>

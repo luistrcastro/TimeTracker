@@ -79,6 +79,9 @@ class RepliconSyncService
         }
 
         // ── Persist projects and tasks ───────────────────────────────
+        $seenProjectIds = [];
+        $seenTaskIds    = [];
+
         foreach ($projectsRaw as $i => $proj) {
             $text = $proj['Text'] ?? '';
             $code = str_contains($text, ' - ')
@@ -91,24 +94,38 @@ class RepliconSyncService
                     'code'      => $code,
                     'name'      => $text,
                     'synced_at' => Carbon::now(),
+                    'is_active' => true,
                 ]
             );
+            $seenProjectIds[] = $project->id;
             $synced['projects']++;
 
             foreach ($taskResults[$i] ?? [] as ['task' => $task, 'path' => $path]) {
-                RepliconTask::updateOrCreate(
+                $taskModel = RepliconTask::updateOrCreate(
                     [
                         'replicon_project_id' => $project->id,
                         'replicon_task_id'    => (string) $task['Value'],
                     ],
                     [
-                        'name' => $task['Text'] ?? '',
-                        'path' => $path,
+                        'name'      => $task['Text'] ?? '',
+                        'path'      => $path,
+                        'is_active' => true,
                     ]
                 );
+                $seenTaskIds[] = $taskModel->id;
                 $synced['tasks']++;
             }
         }
+
+        // ── Deactivate projects/tasks that no longer come back from Replicon ──
+        // Kept (not deleted) since past time entries still reference them.
+        RepliconProject::where('user_id', $user->id)
+            ->whereNotIn('id', $seenProjectIds)
+            ->update(['is_active' => false]);
+
+        RepliconTask::whereHas('project', fn($q) => $q->where('user_id', $user->id))
+            ->whereNotIn('id', $seenTaskIds)
+            ->update(['is_active' => false]);
 
         return $synced;
     }

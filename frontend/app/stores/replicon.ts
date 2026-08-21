@@ -5,7 +5,8 @@ export interface RepliconProject {
   repliconId: string
   code: string
   name: string
-  tasks: Array<{ id: string; repliconTaskId: string; name: string; path: string[] }>
+  isActive: boolean
+  tasks: Array<{ id: string; repliconTaskId: string; name: string; path: string[]; isActive: boolean }>
 }
 
 export interface RepliconCredentials {

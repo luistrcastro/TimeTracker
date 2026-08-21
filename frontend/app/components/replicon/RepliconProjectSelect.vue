@@ -27,9 +27,10 @@ defineEmits<{ 'update:modelValue': [string | null] }>()
 
 const replicon = useRepliconStore()
 
-const projectOptions = computed(() =>
-  replicon.projects.map(p => ({ id: p.id, name: p.name }))
-)
+const projectOptions = computed(() => {
+  const options = replicon.projects.filter(p => p.isActive || p.id === props.modelValue)
+  return options.map(p => ({ id: p.id, name: p.name }))
+})
 
 const selectedName = computed(() => {
   if (!props.modelValue) return ''

@@ -11,6 +11,9 @@
         :items-per-page="10"
         density="compact"
       >
+        <template #item.isActive="{ item }">
+          <ActiveStatusIcon :active="item.isActive" />
+        </template>
         <template #item.rowIndex="{ item }">
           <v-text-field
             :model-value="localMap[item.key] ?? ''"
@@ -64,6 +67,7 @@ const localMap = ref<Record<string, number | ''>>({})
 const headers = [
   { title: 'Project', key: 'projectName', sortable: true },
   { title: 'Task',    key: 'taskName',    sortable: true },
+  { title: 'Active',  key: 'isActive',    sortable: true, width: '80px' },
   { title: 'Row',     key: 'rowIndex',    sortable: false, width: '100px' },
 ]
 
@@ -73,6 +77,7 @@ const rows = computed(() =>
       key:         `${proj.id}:${task.id}`,
       projectName: proj.name,
       taskName:    task.name,
+      isActive:    proj.isActive && task.isActive,
     }))
   )
 )
