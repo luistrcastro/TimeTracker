@@ -9,6 +9,7 @@
               v-model="form.projectId"
               variant="outlined"
               label="Project"
+              :rules="[(v: string) => !!v || 'Required']"
               @update:model-value="form.taskId = null"
             />
           </v-col>
@@ -26,7 +27,6 @@
               label="Description"
               variant="outlined"
               density="compact"
-              :rules="[(v: string) => !!v || 'Required']"
             />
           </v-col>
           <v-col cols="12">
@@ -60,7 +60,7 @@
         </v-btn>
         <v-spacer />
         <v-btn variant="text" :disabled="saving" @click="model = false">Cancel</v-btn>
-        <v-btn color="primary" :loading="saving" @click="save(false)">Save Changes</v-btn>
+        <v-btn color="primary" :disabled="!canSave" :loading="saving" @click="save(false)">Save Changes</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -99,6 +99,8 @@ const form = reactive({
   durationMinutes: 0,
   logged:   false,
 })
+
+const canSave = computed(() => !!form.projectId)
 
 watch(() => props.entry, (e) => {
   if (!e) return
@@ -155,7 +157,7 @@ function calcDuration() {
 }
 
 async function save(cascade: boolean) {
-  if (!props.entry) return
+  if (!props.entry || !canSave.value) return
   saving.value = true
   try {
     const project = replicon.projects.find(p => p.id === form.projectId)

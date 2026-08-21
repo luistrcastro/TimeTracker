@@ -36,5 +36,12 @@ export function useGapOverlap() {
     return h * 60 + m
   }
 
-  return { detectGapsAndOverlaps, timeToMinutes }
+  function formatGapDuration(minutes: number): string {
+    if (minutes <= 60) return `${minutes} min`
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    return `${h}:${String(m).padStart(2, '0')}`
+  }
+
+  return { detectGapsAndOverlaps, timeToMinutes, formatGapDuration }
 }

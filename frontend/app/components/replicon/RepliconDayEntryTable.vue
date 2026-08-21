@@ -24,7 +24,7 @@
         <template v-for="row in displayRows" :key="row.type === 'gap' ? 'gap-' + row.afterId : row.id">
           <tr v-if="row.type === 'gap'" class="gap-row">
             <td colspan="10" class="text-center text-caption text-medium-emphasis py-1">
-              ⟵ {{ row.minutes }}m gap ⟶
+              ⟵ {{ formatGapDuration(row.minutes) }} gap ⟶
             </td>
           </tr>
           <tr
@@ -114,7 +114,7 @@ const jiraRe = computed(() => new RegExp(replicon.jiraPattern || 'PROJ-\\d+', 'i
 function hasJira(desc?: string) { return jiraRe.value.test(desc ?? '') }
 function needsJiraLog(row: DisplayRow) { return hasJira(row.description) && !row.logged }
 const fmt = useTimeFormat()
-const { detectGapsAndOverlaps } = useGapOverlap()
+const { detectGapsAndOverlaps, formatGapDuration } = useGapOverlap()
 
 const editDialog  = ref(false)
 const editEntry   = ref<TimeEntry | null>(null)

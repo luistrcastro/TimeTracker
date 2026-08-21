@@ -127,7 +127,7 @@ function timeToMinutes(hhmm: string) {
 
 const saving = ref(false)
 
-const canSave = computed(() => !!form.description && !!form.start && !!form.finish)
+const canSave = computed(() => !!form.projectId)
 
 function focusNext(field: string) {
   const map: Record<string, any> = { subdesc: subdescRef, start: startRef, finish: finishRef }

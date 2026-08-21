@@ -107,7 +107,10 @@ const compiledRows = computed(() => {
     subProject: v.subProject,
     repliconTaskId: v.repliconTaskId,
     hoursDecimal: minutesToDecimal(v.minutes),
-    comments: [...v.commentMinutes.entries()].map(([text, mins]) => `(${minutesToDecimal(mins)}) ${text}`).join(', '),
+    comments: [...v.commentMinutes.entries()]
+      .sort(([a], [b]) => b.length - a.length)
+      .map(([text, mins]) => `(${minutesToDecimal(mins)}) ${text}`)
+      .join(', '),
   }))
 })
 

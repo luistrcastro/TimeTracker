@@ -29,7 +29,7 @@
         <template v-for="row in displayRows" :key="row.type === 'gap' ? 'gap-' + row.afterId : row.id">
           <tr v-if="row.type === 'gap'" class="gap-row">
             <td colspan="9" class="text-center text-caption text-medium-emphasis py-1">
-              ⟵ {{ row.minutes }}m gap ⟶
+              ⟵ {{ formatGapDuration(row.minutes) }} gap ⟶
             </td>
           </tr>
           <tr
@@ -97,7 +97,7 @@ const emit = defineEmits<{ copyFrom: [] }>()
 const contractor = useContractorStore()
 const ui = useUiStore()
 const fmt = useTimeFormat()
-const { detectGapsAndOverlaps } = useGapOverlap()
+const { detectGapsAndOverlaps, formatGapDuration } = useGapOverlap()
 
 const editDialog  = ref(false)
 const editEntry   = ref<TimeEntry | null>(null)
