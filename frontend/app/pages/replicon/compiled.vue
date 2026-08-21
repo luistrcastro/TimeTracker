@@ -120,7 +120,7 @@ const compiledRows = computed(() => {
     repliconTaskId: v.repliconTaskId,
     hoursDecimal: minutesToDecimal(v.minutes),
     comments: [...v.commentMinutes.entries()]
-      .sort(([a], [b]) => b.length - a.length)
+      .sort(([, a], [, b]) => b - a)
       .map(([text, mins]) => `(${minutesToDecimal(mins)}) ${text}`)
       .join(', '),
   }))
