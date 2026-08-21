@@ -42,7 +42,7 @@
             <v-icon v-if="submitResultMap[row.key] === 'ok'" color="success" size="small">mdi-check-circle</v-icon>
             <v-icon v-else-if="submitResultMap[row.key] === 'err'" color="error" size="small">mdi-alert-circle</v-icon>
           </td>
-          <td class="text-caption">{{ row.comments }}</td>
+          <td class="text-caption comment-cell" title="Click to copy" @click="copyRow(row.comments)">{{ row.comments }}</td>
           <td>
             <v-btn icon="mdi-content-copy" size="x-small" variant="text" @click="copyRow(row.comments)" />
           </td>
@@ -51,12 +51,24 @@
           <td colspan="5" class="text-center text-medium-emphasis py-4">No entries with times for this date.</td>
         </tr>
       </tbody>
+      <tfoot v-if="compiledRows.length">
+        <tr>
+          <td colspan="2" class="text-right font-weight-medium">Total</td>
+          <td class="font-weight-medium">{{ totalHoursDecimal }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
     </v-table>
 
     <v-snackbar v-model="copied" :timeout="2000" location="bottom right">Copied!</v-snackbar>
     <v-snackbar v-model="submitDone" :timeout="3000" location="bottom right" color="success">Submitted to Replicon.</v-snackbar>
   </div>
 </template>
+
+<style scoped>
+.comment-cell { cursor: pointer; }
+.comment-cell:hover { text-decoration: underline; }
+</style>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'module' })
@@ -113,6 +125,10 @@ const compiledRows = computed(() => {
       .join(', '),
   }))
 })
+
+const totalHoursDecimal = computed(() =>
+  minutesToDecimal(dayEntries.value.reduce((sum, e) => sum + (e.durationMinutes ?? 0), 0))
+)
 
 async function copyRow(text: string) {
   await navigator.clipboard.writeText(text)
