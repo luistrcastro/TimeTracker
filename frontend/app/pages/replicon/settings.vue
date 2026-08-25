@@ -9,14 +9,18 @@
     <v-card variant="outlined">
       <v-card-title>Configuration</v-card-title>
       <v-card-text>
-        <v-text-field
-          v-model="jiraPattern"
-          label="Jira ticket pattern (regex)"
+        <v-combobox
+          v-model="jiraTags"
+          label="Jira ticket tags"
           variant="outlined"
           density="compact"
-          style="max-width:320px"
-          hint="e.g. PROJ-\d+"
+          style="max-width:480px"
+          hint="e.g. PROJ-, ABC-123 — entries whose description contains any of these are flagged"
           persistent-hint
+          chips
+          multiple
+          closable-chips
+          hide-no-data
         />
       </v-card-text>
       <v-card-actions>
@@ -35,10 +39,10 @@ const replicon = useRepliconStore()
 
 useShortcuts()
 
-const jiraPattern = ref(replicon.jiraPattern)
+const jiraTags = ref(replicon.jiraTags)
 
 async function saveJira() {
-  replicon.jiraPattern = jiraPattern.value
+  replicon.jiraTags = jiraTags.value
   await replicon.saveCustomization()
 }
 

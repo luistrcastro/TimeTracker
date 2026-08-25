@@ -32,8 +32,8 @@ class UserCustomization extends Model
                 'use12h'        => false,
                 'activeVariant' => 'replicon',
             ],
-            'replicon'   => ['jiraPattern' => 'PROJ-\d+'],
-            'contractor' => ['jiraPattern' => 'PROJ-\d+'],
+            'replicon'   => ['jiraTags' => []],
+            'contractor' => ['jiraTags' => []],
         ];
 
         $stored = $this->configuration ?? [];

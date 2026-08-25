@@ -20,7 +20,7 @@ export interface RepliconCredentials {
 export const useRepliconStore = defineStore('replicon', {
   state: () => ({
     entries: [] as TimeEntry[],
-    jiraPattern: 'PROJ-\\d+',
+    jiraTags: [] as string[],
     credentials: null as RepliconCredentials | null,
     projects: [] as RepliconProject[],
     rowMap: {} as Record<string, number>,
@@ -195,11 +195,11 @@ export const useRepliconStore = defineStore('replicon', {
     },
 
     loadCustomization(data: UserCustomization) {
-      this.jiraPattern = data.replicon.jiraPattern
+      this.jiraTags = Array.isArray(data.replicon.jiraTags) ? data.replicon.jiraTags : []
     },
     async saveCustomization() {
       const { save } = useUserCustomization()
-      await save({ replicon: { jiraPattern: this.jiraPattern } })
+      await save({ replicon: { jiraTags: this.jiraTags } })
     },
   },
 })

@@ -77,7 +77,7 @@ export interface UserCustomizationUi {
 }
 
 export interface UserCustomizationModule {
-  jiraPattern: string
+  jiraTags: string[]
 }
 
 export interface UserCustomization {

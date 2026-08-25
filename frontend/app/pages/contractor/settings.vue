@@ -8,14 +8,18 @@
     <v-card variant="outlined" class="mb-4">
       <v-card-title>Configuration</v-card-title>
       <v-card-text>
-        <v-text-field
-          v-model="jiraPattern"
-          label="Jira ticket pattern (regex)"
+        <v-combobox
+          v-model="jiraTags"
+          label="Jira ticket tags"
           variant="outlined"
           density="compact"
-          style="max-width:320px"
-          hint="e.g. PROJ-\d+"
+          style="max-width:480px"
+          hint="e.g. PROJ-, ABC-123 — entries whose description contains any of these are flagged"
           persistent-hint
+          chips
+          multiple
+          closable-chips
+          hide-no-data
         />
       </v-card-text>
       <v-card-actions>
@@ -35,10 +39,10 @@ const contractor = useContractorStore()
 
 useShortcuts()
 
-const jiraPattern = ref(contractor.jiraPattern)
+const jiraTags = ref(contractor.jiraTags)
 
 async function saveJira() {
-  contractor.jiraPattern = jiraPattern.value
+  contractor.jiraTags = jiraTags.value
   await contractor.saveCustomization()
 }
 

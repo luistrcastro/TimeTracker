@@ -26,9 +26,11 @@ class UserCustomizationController extends Controller
             'ui.use12h'              => ['sometimes', 'boolean'],
             'ui.activeVariant'       => ['sometimes', 'string', 'in:replicon,contractor'],
             'replicon'               => ['sometimes', 'array'],
-            'replicon.jiraPattern'   => ['sometimes', 'string', 'max:255'],
+            'replicon.jiraTags'      => ['sometimes', 'array'],
+            'replicon.jiraTags.*'    => ['string', 'max:255'],
             'contractor'             => ['sometimes', 'array'],
-            'contractor.jiraPattern' => ['sometimes', 'string', 'max:255'],
+            'contractor.jiraTags'    => ['sometimes', 'array'],
+            'contractor.jiraTags.*'  => ['string', 'max:255'],
         ]);
 
         $customization = UserCustomization::firstOrCreate(

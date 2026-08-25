@@ -110,8 +110,10 @@ const emit = defineEmits<{ copyFrom: [] }>()
 const replicon = useRepliconStore()
 const ui = useUiStore()
 
-const jiraRe = computed(() => new RegExp(replicon.jiraPattern || 'PROJ-\\d+', 'i'))
-function hasJira(desc?: string) { return jiraRe.value.test(desc ?? '') }
+function hasJira(desc?: string) {
+  const d = (desc ?? '').toLowerCase()
+  return replicon.jiraTags.some(tag => tag && d.includes(tag.toLowerCase()))
+}
 function needsJiraLog(row: DisplayRow) { return hasJira(row.description) && !row.logged }
 const fmt = useTimeFormat()
 const { detectGapsAndOverlaps, formatGapDuration } = useGapOverlap()

@@ -9,7 +9,6 @@ export const useUiStore = defineStore('ui', {
     currentDate: new Date().toLocaleDateString('en-CA'),
     sortCol: null as 'project' | 'subProject' | 'start' | null,
     sortDir: null as 'asc' | 'desc' | null,
-    jiraPattern: 'PROJ-\\d+',
     activeVariant: 'replicon' as 'replicon' | 'contractor',
     shortcutsDialog: false,
     errorSnackbar: false,
@@ -67,7 +66,7 @@ export const useUiStore = defineStore('ui', {
 
   persist: {
     storage: piniaPluginPersistedstate.localStorage(),
-    pick: ['theme', 'use12h', 'jiraPattern', 'activeVariant'],
+    pick: ['theme', 'use12h', 'activeVariant'],
     key: 'tt_ui',
   },
 })

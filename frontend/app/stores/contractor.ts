@@ -3,7 +3,7 @@ import type { Client, CompanySetting, Invoice, TimeEntry, UserCustomization } fr
 export const useContractorStore = defineStore('contractor', {
   state: () => ({
     entries: [] as TimeEntry[],
-    jiraPattern: 'PROJ-\\d+',
+    jiraTags: [] as string[],
     clients: [] as Client[],
     invoices: [] as Invoice[],
     company: null as CompanySetting | null,
@@ -146,11 +146,11 @@ export const useContractorStore = defineStore('contractor', {
     },
 
     loadCustomization(data: UserCustomization) {
-      this.jiraPattern = data.contractor.jiraPattern
+      this.jiraTags = Array.isArray(data.contractor.jiraTags) ? data.contractor.jiraTags : []
     },
     async saveCustomization() {
       const { save } = useUserCustomization()
-      await save({ contractor: { jiraPattern: this.jiraPattern } })
+      await save({ contractor: { jiraTags: this.jiraTags } })
     },
   },
 })
