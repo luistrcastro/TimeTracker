@@ -1,5 +1,6 @@
 <template>
   <v-autocomplete
+    ref="autocompleteRef"
     :model-value="modelValue"
     :items="clientItems"
     item-title="name"
@@ -24,4 +25,7 @@ const contractor = useContractorStore()
 const clientItems = computed(() => contractor.clients)
 const search = ref('')
 const isSingleMatch = useSingleMatchAutocomplete(clientItems, search, c => c.name)
+
+const autocompleteRef = ref()
+defineExpose({ focus: () => autocompleteRef.value?.focus() })
 </script>

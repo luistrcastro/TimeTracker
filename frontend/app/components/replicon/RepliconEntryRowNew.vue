@@ -6,6 +6,7 @@
         variant="underlined"
         placeholder="Project"
         hide-details
+        ref="projectRef"
         @update:model-value="form.taskId = null"
       />
     </td>
@@ -80,6 +81,7 @@ const props = defineProps<{ prefillStart: string; prefill?: PrefillData | null }
 const replicon = useRepliconStore()
 const ui = useUiStore()
 
+const projectRef = ref()
 const descRef = ref()
 const subdescRef = ref()
 const startRef = ref()
@@ -134,6 +136,13 @@ function focusNext(field: string) {
   map[field]?.value?.$el?.querySelector('input')?.focus()
 }
 
+function focusFirst() {
+  projectRef.value?.focus()
+}
+
+onMounted(() => useNewRowFocus().register(focusFirst))
+onUnmounted(() => useNewRowFocus().unregister())
+
 async function save() {
   if (!canSave.value) return
   saving.value = true
@@ -156,6 +165,8 @@ async function save() {
     })
 
     clear(form.finish)
+    await nextTick()
+    focusFirst()
   } finally {
     saving.value = false
   }

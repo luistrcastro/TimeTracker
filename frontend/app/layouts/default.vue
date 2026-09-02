@@ -167,6 +167,7 @@
 	const shortcuts = [
 		{ keys: ['←', '→'], desc: 'Previous / next day' },
 		{ keys: ['T'], desc: 'Jump to today' },
+		{ keys: ['N'], desc: 'Focus new entry row' },
 		{ keys: ['[', ']'], desc: 'Previous / next tab' },
 		{ keys: ['?'], desc: 'Show this help' },
 	];

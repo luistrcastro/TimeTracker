@@ -264,6 +264,6 @@ GET /api/health
 - [x] Email verification fixed (nginx trailing-slash redirect + middleware path normalization + `watch` instead of `onMounted`)
 - [ ] Split entry dialog — `RepliconSplitDialog` exists; `ContractorSplitDialog` not yet built; `openSplit` stubs remain in day.vue pages
 - [ ] Replicon PROJ mode — `RepliconProjectSelect` and `RepliconSubProjectSelect` components built; full wiring in `RepliconEntryRowNew` / `RepliconEntryEditDialog` still in progress
-- [ ] `useShortcuts` keyboard shortcut `N` (focus new-entry row) — ref to new-row input needed from page level
+- [x] `useShortcuts` keyboard shortcut `N` (focus new-entry row) — also refocuses after a successful save, in both Replicon and Contractor
 - [ ] Rate limits: bump `throttle:api` to `throttle:120,1` for the `auth:sanctum,verified` group before going live
 - [ ] Supabase RLS: not used (auth is in Laravel policies) — document this so future contributors don't add it accidentally

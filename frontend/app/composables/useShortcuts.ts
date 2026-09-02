@@ -47,6 +47,11 @@ export function useShortcuts() {
       case 'T':
         ui.setDate(new Date().toLocaleDateString('en-CA'))
         break
+      case 'n':
+      case 'N':
+        e.preventDefault()
+        useNewRowFocus().trigger()
+        break
       case '?':
         ui.shortcutsDialog = !ui.shortcutsDialog
         break

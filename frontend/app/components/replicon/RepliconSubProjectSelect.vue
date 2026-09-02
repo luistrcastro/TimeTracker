@@ -7,6 +7,7 @@
           :items="taskOptions"
           item-title="name"
           item-value="id"
+          :return-object="false"
           density="compact"
           clearable
           v-model:search="search"

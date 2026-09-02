@@ -3,10 +3,12 @@
     <template #activator="{ props: tooltipProps }">
       <div v-bind="tooltipProps">
         <v-combobox
+          ref="comboRef"
           :model-value="modelValue"
           :items="projectOptions"
           item-title="name"
           item-value="id"
+          :return-object="false"
           density="compact"
           clearable
           v-model:search="search"
@@ -39,4 +41,7 @@ const selectedName = computed(() => {
 
 const search = ref('')
 const isSingleMatch = useSingleMatchAutocomplete(projectOptions, search, p => p.name)
+
+const comboRef = ref()
+defineExpose({ focus: () => comboRef.value?.focus() })
 </script>
