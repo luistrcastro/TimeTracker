@@ -107,8 +107,8 @@ watch(() => props.entry, (e) => {
   const project = replicon.projects.find(p => p.code === (e.project ?? ''))
   const task    = project?.tasks.find(t => t.id === e.repliconTaskId) ??
                   project?.tasks.find(t => t.name === (e.subProject ?? ''))
-  form.projectId      = project?.id ?? null
-  form.taskId         = task?.id ?? null
+  form.projectId      = project?.id ?? (e.project || null)
+  form.taskId         = task?.id ?? (e.subProject || null)
   form.description    = e.description
   form.subDescription = e.subDescription ?? ''
   form.date           = e.date
@@ -177,9 +177,9 @@ async function save(cascade: boolean) {
     }
 
     await replicon.update(props.entry.id, {
-      project:         project?.code ?? props.entry.project ?? '',
-      subProject:      task?.name    ?? props.entry.subProject ?? '',
-      repliconTaskId:  form.taskId,
+      project:         project?.code ?? form.projectId ?? props.entry.project ?? '',
+      subProject:      task?.name    ?? form.taskId    ?? props.entry.subProject ?? '',
+      repliconTaskId:  task?.id ?? null,
       description:     form.description,
       subDescription:  form.subDescription,
       date:            form.date,

@@ -143,9 +143,9 @@ async function save() {
 
     await replicon.create({
       date:            ui.currentDate,
-      project:         project?.code ?? '',
-      subProject:      task?.name ?? '',
-      repliconTaskId:  form.taskId ?? null,
+      project:         project?.code ?? (form.projectId ?? ''),
+      subProject:      task?.name ?? (form.taskId ?? ''),
+      repliconTaskId:  task?.id ?? null,
       description:     form.description,
       subDescription:  form.subDescription,
       start:           form.start,

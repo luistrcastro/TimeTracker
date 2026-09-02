@@ -131,8 +131,8 @@ const prefillData = ref<PrefillData | null>(null)
 function prefillRow(row: DisplayRow) {
   const project = replicon.projects.find(p => p.code === row.project)
   prefillData.value = {
-    projectId:      project?.id ?? null,
-    taskId:         row.repliconTaskId ?? null,
+    projectId:      project?.id ?? (row.project || null),
+    taskId:         row.repliconTaskId ?? (row.subProject || null),
     description:    row.description ?? '',
     subDescription: row.subDescription ?? '',
   }

@@ -130,8 +130,8 @@ watch(() => props.entry, (e) => {
   originalFinish.value = e.finish ?? ''
   rows.value = [{
     _key:           ++_keyCounter,
-    projectId:      project?.id ?? null,
-    taskId:         task?.id ?? null,
+    projectId:      project?.id ?? (e.project || null),
+    taskId:         task?.id ?? (e.subProject || null),
     description:    e.description,
     subDescription: e.subDescription ?? '',
     start:          e.start ?? '',
@@ -266,9 +266,9 @@ async function save(cascade: boolean) {
     const task    = project?.tasks.find(t => t.id === r.taskId)
     await replicon.create({
       date,
-      project:         project?.code ?? '',
-      subProject:      task?.name ?? '',
-      repliconTaskId:  r.taskId,
+      project:         project?.code ?? (r.projectId ?? ''),
+      subProject:      task?.name ?? (r.taskId ?? ''),
+      repliconTaskId:  task?.id ?? null,
       description:     r.description,
       subDescription:  r.subDescription,
       start:           r.start,

@@ -2,14 +2,13 @@
   <v-tooltip :text="selectedPath" location="top" :disabled="!selectedPath">
     <template #activator="{ props: tooltipProps }">
       <div v-bind="tooltipProps">
-        <v-autocomplete
+        <v-combobox
           :model-value="modelValue"
           :items="taskOptions"
           item-title="name"
           item-value="id"
           density="compact"
           clearable
-          :disabled="!taskOptions.length"
           v-model:search="search"
           :auto-select-first="isSingleMatch"
           v-bind="$attrs"
@@ -21,7 +20,7 @@
               :subtitle="item.raw.path?.length ? item.raw.path.join(' › ') : undefined"
             />
           </template>
-        </v-autocomplete>
+        </v-combobox>
       </div>
     </template>
   </v-tooltip>

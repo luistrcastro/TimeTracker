@@ -2,7 +2,7 @@
   <v-tooltip :text="selectedName" location="top" :disabled="!selectedName">
     <template #activator="{ props: tooltipProps }">
       <div v-bind="tooltipProps">
-        <v-autocomplete
+        <v-combobox
           :model-value="modelValue"
           :items="projectOptions"
           item-title="name"
