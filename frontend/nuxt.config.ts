@@ -47,7 +47,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: 'http://localhost:8020',
       appName: 'Time Tracker',
-      appVersion: '3.3.0',
+      appVersion: '3.4.0',
     },
   },
 
