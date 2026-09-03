@@ -21,7 +21,7 @@
         <tbody>
           <tr v-for="e in day.entries" :key="e.id">
             <td>
-              <v-tooltip :text="projectNameByCode[e.project ?? '']" location="top" :disabled="!projectNameByCode[e.project ?? '']">
+              <v-tooltip :text="projectNameForEntry(e)" location="top" :disabled="!projectNameForEntry(e)">
                 <template #activator="{ props }">
                   <span v-bind="props">{{ e.project }}</span>
                 </template>
@@ -51,6 +51,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TimeEntry } from '~/types'
+
 definePageMeta({ layout: 'module' })
 
 const ui = useUiStore()
@@ -62,6 +64,19 @@ useShortcuts()
 const projectNameByCode = computed(() =>
   Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
 )
+
+const projectNameByTaskId = computed(() => {
+  const map: Record<string, string> = {}
+  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = p.name }))
+  return map
+})
+
+function projectNameForEntry(e: TimeEntry) {
+  if (e.repliconTaskId && projectNameByTaskId.value[e.repliconTaskId]) {
+    return projectNameByTaskId.value[e.repliconTaskId]
+  }
+  return projectNameByCode.value[e.project ?? '']
+}
 
 const taskPathById = computed(() => {
   const map: Record<string, string[]> = {}

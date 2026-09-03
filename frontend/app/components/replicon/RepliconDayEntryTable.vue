@@ -33,7 +33,7 @@
             @dblclick="openEdit(row.id!)"
           >
             <td>
-              <v-tooltip :text="projectNameByCode[row.project ?? '']" location="top" :disabled="!projectNameByCode[row.project ?? '']">
+              <v-tooltip :text="projectNameForRow(row)" location="top" :disabled="!projectNameForRow(row)">
                 <template #activator="{ props }">
                   <span v-bind="props">{{ row.project }}</span>
                 </template>
@@ -221,6 +221,19 @@ interface DisplayRow {
 const projectNameByCode = computed(() =>
   Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
 )
+
+const projectNameByTaskId = computed(() => {
+  const map: Record<string, string> = {}
+  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = p.name }))
+  return map
+})
+
+function projectNameForRow(row: DisplayRow) {
+  if (row.repliconTaskId && projectNameByTaskId.value[row.repliconTaskId]) {
+    return projectNameByTaskId.value[row.repliconTaskId]
+  }
+  return projectNameByCode.value[row.project ?? '']
+}
 
 const taskPathById = computed(() => {
   const map: Record<string, string[]> = {}
