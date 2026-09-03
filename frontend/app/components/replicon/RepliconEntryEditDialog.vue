@@ -104,7 +104,7 @@ const canSave = computed(() => !!form.projectId)
 
 watch(() => props.entry, (e) => {
   if (!e) return
-  const project = replicon.projects.find(p => p.code === (e.project ?? ''))
+  const project = replicon.projectForEntry(e)
   const task    = project?.tasks.find(t => t.id === e.repliconTaskId) ??
                   project?.tasks.find(t => t.name === (e.subProject ?? ''))
   form.projectId      = project?.id ?? (e.project || null)

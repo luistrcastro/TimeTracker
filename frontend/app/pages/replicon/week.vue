@@ -61,21 +61,8 @@ const fmt = useTimeFormat()
 
 useShortcuts()
 
-const projectNameByCode = computed(() =>
-  Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
-)
-
-const projectNameByTaskId = computed(() => {
-  const map: Record<string, string> = {}
-  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = p.name }))
-  return map
-})
-
 function projectNameForEntry(e: TimeEntry) {
-  if (e.repliconTaskId && projectNameByTaskId.value[e.repliconTaskId]) {
-    return projectNameByTaskId.value[e.repliconTaskId]
-  }
-  return projectNameByCode.value[e.project ?? '']
+  return replicon.projectForEntry(e)?.name ?? ''
 }
 
 const taskPathById = computed(() => {

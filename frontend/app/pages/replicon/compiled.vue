@@ -89,25 +89,8 @@ const dayEntries = computed(() =>
     .sort((a, b) => (a.start ?? '') > (b.start ?? '') ? 1 : -1)
 )
 
-const projectNameByCode = computed(() =>
-  Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
-)
-
-const projectIdByCode = computed(() =>
-  Object.fromEntries(replicon.projects.map(p => [p.code, p.id]))
-)
-
-const projectNameByTaskId = computed(() => {
-  const map: Record<string, string> = {}
-  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = p.name }))
-  return map
-})
-
 function projectNameForRow(row: { project: string; repliconTaskId: string | null }) {
-  if (row.repliconTaskId && projectNameByTaskId.value[row.repliconTaskId]) {
-    return projectNameByTaskId.value[row.repliconTaskId]
-  }
-  return projectNameByCode.value[row.project]
+  return replicon.projectForEntry(row)?.name ?? ''
 }
 
 const taskPathById = computed(() => {
@@ -158,7 +141,7 @@ async function submit() {
   const rows = compiledRows.value.map(r => ({
     projectId: r.project,
     taskId: r.subProject,
-    rowIndex: replicon.rowMap[`${projectIdByCode.value[r.project]}:${r.repliconTaskId}`] ?? 0,
+    rowIndex: replicon.rowMap[`${replicon.projectForEntry(r)?.id}:${r.repliconTaskId}`] ?? 0,
     hours: r.hoursDecimal,
     comment: r.comments,
   }))

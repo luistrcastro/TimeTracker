@@ -39,6 +39,16 @@ export const useRepliconStore = defineStore('replicon', {
       const proj = state.projects.find(p => p.id === projectId)
       return proj?.tasks.find(t => t.id === taskId)
     },
+    // Project codes aren't unique across fiscal years — a repliconTaskId uniquely
+    // identifies its owning project, so prefer it over the code, which is only
+    // reliable for freeform entries that haven't been linked to a task yet.
+    projectForEntry: (state) => (entry: { project?: string | null; repliconTaskId?: string | null }) => {
+      if (entry.repliconTaskId) {
+        const byTask = state.projects.find(p => p.tasks.some(t => t.id === entry.repliconTaskId))
+        if (byTask) return byTask
+      }
+      return state.projects.find(p => p.code === (entry.project ?? ''))
+    },
     projectSuggestions: (state) => state.projects.map(p => p.name),
     taskSuggestionsFor: (state) => (projectName: string) => {
       const proj = state.projects.find(p => p.name === projectName)

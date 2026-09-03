@@ -129,7 +129,7 @@ interface PrefillData { projectId: string | null; taskId: string | null; descrip
 const prefillData = ref<PrefillData | null>(null)
 
 function prefillRow(row: DisplayRow) {
-  const project = replicon.projects.find(p => p.code === row.project)
+  const project = replicon.projectForEntry(row)
   prefillData.value = {
     projectId:      project?.id ?? (row.project || null),
     taskId:         row.repliconTaskId ?? (row.subProject || null),
@@ -218,21 +218,8 @@ interface DisplayRow {
   _overlapFinish?: boolean
 }
 
-const projectNameByCode = computed(() =>
-  Object.fromEntries(replicon.projects.map(p => [p.code, p.name]))
-)
-
-const projectNameByTaskId = computed(() => {
-  const map: Record<string, string> = {}
-  replicon.projects.forEach(p => p.tasks.forEach(t => { map[t.id] = p.name }))
-  return map
-})
-
 function projectNameForRow(row: DisplayRow) {
-  if (row.repliconTaskId && projectNameByTaskId.value[row.repliconTaskId]) {
-    return projectNameByTaskId.value[row.repliconTaskId]
-  }
-  return projectNameByCode.value[row.project ?? '']
+  return replicon.projectForEntry(row)?.name ?? ''
 }
 
 const taskPathById = computed(() => {
