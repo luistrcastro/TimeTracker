@@ -251,6 +251,10 @@ GET /api/health
 3. New pages: create under `pages/`, Nuxt auto-registers them
 4. New stores: create under `stores/`, Pinia auto-imports via `@pinia/nuxt`
 
+**Versioning:** version lives in `frontend/package.json`, `frontend/package-lock.json` (two spots), and `frontend/nuxt.config.ts` (`runtimeConfig.public.appVersion`) — all three must match, as a separate commit from the actual change (see `git log`: fix/feature commit, then a standalone "Bump version to X.Y.Z" commit).
+- **Committing straight to `main`:** always bump the version before pushing, sized to the work with normal semver judgment — patch for a bug fix, minor for a new feature/capability, major only for a breaking change. Don't ask first; just do it.
+- **Working on another branch:** don't bump as part of the branch work. Once the work is finished, ask the user whether to bump the version (and by how much) before merging/pushing to `main`.
+
 ---
 
 ## Open Items

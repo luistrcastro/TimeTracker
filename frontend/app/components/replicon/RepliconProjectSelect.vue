@@ -14,7 +14,8 @@
           v-model:search="search"
           :auto-select-first="isSingleMatch"
           v-bind="$attrs"
-          @update:model-value="$emit('update:modelValue', $event)"
+          @update:model-value="onUpdateModelValue"
+          @keydown.enter.stop
         />
       </div>
     </template>
@@ -25,7 +26,7 @@
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{ modelValue: string | null }>()
-defineEmits<{ 'update:modelValue': [string | null] }>()
+const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
 
 const replicon = useRepliconStore()
 
@@ -41,6 +42,19 @@ const selectedName = computed(() => {
 
 const search = ref('')
 const isSingleMatch = useSingleMatchAutocomplete(projectOptions, search, p => p.name)
+
+// v-combobox allows free text, so Enter/Tab can commit the raw typed string
+// instead of resolving to the highlighted item's id when the search text
+// doesn't narrow to a single exact match (autoSelectFirst then never fires).
+// Resolve it back to the matching project's id so this doesn't silently
+// leave form.projectId as text an actual project can't be found from.
+function onUpdateModelValue(value: string | null) {
+  if (value && !replicon.projects.some(p => p.id === value)) {
+    const match = projectOptions.value.find(p => p.name.toLowerCase() === value.toLowerCase())
+    if (match) value = match.id
+  }
+  emit('update:modelValue', value)
+}
 
 const comboRef = ref()
 defineExpose({ focus: () => comboRef.value?.focus() })

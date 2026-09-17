@@ -13,7 +13,8 @@
           v-model:search="search"
           :auto-select-first="isSingleMatch"
           v-bind="$attrs"
-          @update:model-value="$emit('update:modelValue', $event)"
+          @update:model-value="onUpdateModelValue"
+          @keydown.enter.stop
         >
           <template #item="{ props, item }">
             <v-list-item
@@ -35,7 +36,7 @@ const props = defineProps<{
   projectId: string | null
 }>()
 
-defineEmits<{ 'update:modelValue': [string | null] }>()
+const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
 
 const replicon = useRepliconStore()
 
@@ -53,4 +54,15 @@ const selectedPath = computed(() => {
 
 const search = ref('')
 const isSingleMatch = useSingleMatchAutocomplete(taskOptions, search, t => t.name)
+
+// See RepliconProjectSelect: v-combobox can commit raw typed text instead of
+// resolving to the highlighted item's id when the search text doesn't narrow
+// to a single exact match. Resolve it back to the matching task's id.
+function onUpdateModelValue(value: string | null) {
+  if (value && !taskOptions.value.some(t => t.id === value)) {
+    const match = taskOptions.value.find(t => t.name.toLowerCase() === value.toLowerCase())
+    if (match) value = match.id
+  }
+  emit('update:modelValue', value)
+}
 </script>
