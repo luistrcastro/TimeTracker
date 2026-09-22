@@ -24,7 +24,7 @@ class ProjectsCacheController extends Controller
     public function updateProject(Request $request, RepliconProject $project): JsonResponse
     {
         $data = $request->validate(['active' => ['required', 'boolean']]);
-        $project->update(['user_disabled' => ! $data['active']]);
+        $project->update(['active_override' => $data['active']]);
 
         return response()->json($this->formatProject($project->fresh('tasks')));
     }
@@ -34,7 +34,7 @@ class ProjectsCacheController extends Controller
         abort_unless($task->project->user_id === auth()->id(), 404);
 
         $data = $request->validate(['active' => ['required', 'boolean']]);
-        $task->update(['user_disabled' => ! $data['active']]);
+        $task->update(['active_override' => $data['active']]);
 
         return response()->json($this->formatProject($task->project()->with('tasks')->first()));
     }
@@ -47,14 +47,14 @@ class ProjectsCacheController extends Controller
             'code'       => $p->code,
             'name'       => $p->name,
             'syncedAt'   => $p->synced_at?->toISOString(),
-            'isActive'   => $p->is_active && ! $p->user_disabled,
+            'isActive'   => $p->active_override ?? $p->is_active,
             'syncActive' => $p->is_active,
             'tasks'      => $p->tasks->map(fn($t) => [
                 'id'             => $t->id,
                 'repliconTaskId' => $t->replicon_task_id,
                 'name'           => $t->name,
                 'path'           => $t->path ?? [],
-                'isActive'       => $t->is_active && ! $t->user_disabled,
+                'isActive'       => $t->active_override ?? $t->is_active,
                 'syncActive'     => $t->is_active,
             ]),
         ];

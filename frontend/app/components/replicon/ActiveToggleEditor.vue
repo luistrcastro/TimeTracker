@@ -1,19 +1,17 @@
 <template>
-  <div class="d-flex align-center" style="min-width:96px" @click.stop>
+  <div class="d-flex justify-end align-center" style="min-width:96px" @click.stop>
     <template v-if="!editing">
       <ActiveStatusIcon :active="active" />
-      <v-tooltip v-if="!syncActive" location="top" text="Not returned by the latest Replicon sync — must be re-synced before it can be reactivated">
+      <v-tooltip v-if="!syncActive" location="top" text="Not returned by the latest Replicon sync — forcing this active may cause errors when submitting time to Replicon">
         <template #activator="{ props }">
-          <span v-bind="props">
-            <v-btn icon="mdi-pencil" size="x-small" variant="text" density="compact" disabled />
-          </span>
+          <v-btn v-bind="props" class="ml-2" icon="mdi-pencil" size="x-small" variant="text" density="compact" @click="start" />
         </template>
       </v-tooltip>
-      <v-btn v-else icon="mdi-pencil" size="x-small" variant="text" density="compact" @click="start" />
+      <v-btn v-else class="ml-2" icon="mdi-pencil" size="x-small" variant="text" density="compact" @click="start" />
     </template>
     <template v-else>
       <v-switch v-model="pending" density="compact" hide-details color="primary" class="mt-0 flex-grow-0" />
-      <v-btn icon="mdi-check" size="x-small" variant="text" color="success" density="compact" :loading="saving" @click="confirm" />
+      <v-btn class="ml-4 mr-2" icon="mdi-check" size="x-small" variant="text" color="success" density="compact" :loading="saving" @click="confirm" />
       <v-btn icon="mdi-close" size="x-small" variant="text" density="compact" :disabled="saving" @click="cancel" />
     </template>
   </div>

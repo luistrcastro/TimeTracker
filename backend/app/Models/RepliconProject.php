@@ -10,11 +10,11 @@ class RepliconProject extends Model
 {
     use BelongsToUser, HasUuidV7;
 
-    protected $fillable = ['replicon_id', 'code', 'name', 'synced_at', 'is_active', 'user_disabled'];
+    protected $fillable = ['replicon_id', 'code', 'name', 'synced_at', 'is_active', 'active_override'];
 
     protected function casts(): array
     {
-        return ['synced_at' => 'datetime', 'is_active' => 'boolean', 'user_disabled' => 'boolean'];
+        return ['synced_at' => 'datetime', 'is_active' => 'boolean', 'active_override' => 'boolean'];
     }
 
     public function tasks()
