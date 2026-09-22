@@ -43,6 +43,17 @@
             style="max-width:320px"
           />
         </div>
+        <div class="d-flex align-center mb-2">
+          <v-spacer />
+          <v-switch
+            v-model="activeOnly"
+            label="Show active only"
+            density="compact"
+            hide-details
+            color="primary"
+            class="flex-grow-0"
+          />
+        </div>
         <div v-if="!filteredProjects.length" class="text-medium-emphasis text-body-2">
           No projects or tasks match your filter.
         </div>
@@ -50,8 +61,21 @@
           <v-list-group v-for="proj in filteredProjects" :key="proj.id" :value="proj.id">
             <template #activator="{ props }">
               <v-list-item v-bind="props" :title="`[${proj.code}] ${proj.name}`">
+                <template #prepend>
+                  <v-icon
+                    v-if="proj.tasks.length"
+                    :icon="opened.includes(proj.id) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                    size="small"
+                    class="mr-1"
+                  />
+                  <span v-else class="mr-1" style="display:inline-block;width:20px" />
+                </template>
                 <template #append>
-                  <ActiveStatusIcon :active="proj.isActive" />
+                  <ActiveToggleEditor
+                    :active="proj.isActive"
+                    :sync-active="proj.syncActive"
+                    :save="(v) => replicon.setProjectActive(proj.id, v)"
+                  />
                 </template>
               </v-list-item>
             </template>
@@ -63,7 +87,11 @@
               class="pl-8 text-caption"
             >
               <template #append>
-                <ActiveStatusIcon :active="task.isActive" />
+                <ActiveToggleEditor
+                  :active="task.isActive"
+                  :sync-active="task.syncActive"
+                  :save="(v) => replicon.setTaskActive(proj.id, task.id, v)"
+                />
               </template>
             </v-list-item>
           </v-list-group>
@@ -78,6 +106,7 @@ const replicon = useRepliconStore()
 
 const selectedProjectId = ref<string | null>(null)
 const searchText = ref('')
+const activeOnly = ref(false)
 
 const opened = ref<string[]>([])
 const openedBeforeSearch = ref<string[]>([])
@@ -106,10 +135,13 @@ const filteredProjects = computed(() => {
 
   return replicon.projects
     .filter(proj => !selectedProjectId.value || proj.id === selectedProjectId.value)
+    .filter(proj => !activeOnly.value || proj.isActive)
     .map(proj => {
-      if (!query) return proj
-      const tasks = proj.tasks.filter(t => t.name.toLowerCase().includes(query))
-      return tasks.length ? { ...proj, tasks } : null
+      let tasks = proj.tasks
+      if (query) tasks = tasks.filter(t => t.name.toLowerCase().includes(query))
+      if (activeOnly.value) tasks = tasks.filter(t => t.isActive)
+      if (query && !tasks.length) return null
+      return { ...proj, tasks }
     })
     .filter((proj): proj is NonNullable<typeof proj> => proj !== null)
 })

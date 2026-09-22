@@ -6,7 +6,8 @@ export interface RepliconProject {
   code: string
   name: string
   isActive: boolean
-  tasks: Array<{ id: string; repliconTaskId: string; name: string; path: string[]; isActive: boolean }>
+  syncActive: boolean
+  tasks: Array<{ id: string; repliconTaskId: string; name: string; path: string[]; isActive: boolean; syncActive: boolean }>
 }
 
 export interface RepliconCredentials {
@@ -164,6 +165,26 @@ export const useRepliconStore = defineStore('replicon', {
       const api = useApi()
       const data = await api<{ projects: RepliconProject[] }>('/api/replicon/projects') as any
       this.projects = data.projects ?? []
+    },
+
+    async setProjectActive(projectId: string, active: boolean) {
+      const api = useApi()
+      const updated = await api<RepliconProject>(`/api/replicon/projects/${projectId}`, {
+        method: 'PATCH',
+        body: { active },
+      }) as RepliconProject
+      const idx = this.projects.findIndex(p => p.id === projectId)
+      if (idx !== -1) this.projects[idx] = updated
+    },
+
+    async setTaskActive(projectId: string, taskId: string, active: boolean) {
+      const api = useApi()
+      const updated = await api<RepliconProject>(`/api/replicon/tasks/${taskId}`, {
+        method: 'PATCH',
+        body: { active },
+      }) as RepliconProject
+      const idx = this.projects.findIndex(p => p.id === projectId)
+      if (idx !== -1) this.projects[idx] = updated
     },
 
     async loadRowMap() {
