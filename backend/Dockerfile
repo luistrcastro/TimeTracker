@@ -7,7 +7,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 # ── Stage 2: dev (hot-reload, no optimize) ───────────────────────────────────
-FROM php:8.3-fpm-alpine AS dev
+FROM php:8.3.36-fpm-alpine AS dev
 RUN apk add --no-cache \
         linux-headers \
         postgresql-dev \
@@ -37,7 +37,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 8020
 
 # ── Stage 3: runtime (prod) ──────────────────────────────────────────────────
-FROM php:8.3-fpm-alpine AS runtime
+FROM php:8.3.36-fpm-alpine AS runtime
 RUN apk add --no-cache \
         linux-headers \
         postgresql-dev \
