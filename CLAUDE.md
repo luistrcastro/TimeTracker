@@ -230,8 +230,8 @@ GET /api/health
 
 ## Production Deployment
 
-- **Backend:** `fly deploy` from `backend/`. Fly app: `timetracker-api`, region `yyz`, scale-to-zero. Release command runs `php artisan migrate --force`.
-- **Frontend:** `fly deploy` from `frontend/`. Fly app: `timetracker-app`, region `yyz`, scale-to-zero. `NUXT_PUBLIC_API_BASE` is a build arg set in `frontend/fly.toml` — baked into the JS bundle at build time. GitHub Actions deploys automatically on push to `main` when `frontend/**` changes.
+- **Backend:** `fly deploy` from `backend/`. Fly app: `timetracker-api-lqdb8q` (`fly` commands run from `backend/` pick it up from `fly.toml`; elsewhere pass `-a timetracker-api-lqdb8q`), region `yyz`, scale-to-zero. Release command runs `php artisan migrate --force`.
+- **Frontend:** `fly deploy` from `frontend/`. Fly app: `time-tracker-app`, region `yyz`, scale-to-zero. `NUXT_PUBLIC_API_BASE` is a build arg set in `frontend/fly.toml` — baked into the JS bundle at build time. GitHub Actions deploys automatically on push to `main` when `frontend/**` changes.
 - **Database:** Supabase `ca-central-1`, use pooler port 6543 (not 5432) to avoid connection exhaustion on Fly scale-to-zero.
 - **Backend secrets:** `fly secrets set APP_KEY=... DB_HOST=... DB_PASSWORD=...` (see `README.md` for the full list). Storage vars are `SUPABASE_S3_KEY`, `SUPABASE_S3_SECRET`, `SUPABASE_S3_BUCKET`, `SUPABASE_S3_ENDPOINT` — not `AWS_*`.
 
