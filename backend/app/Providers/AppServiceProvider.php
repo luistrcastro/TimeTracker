@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Database\PostgresConnection;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Database\Connection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
@@ -10,7 +12,12 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        Connection::resolverFor('pgsql', fn ($pdo, $database, $prefix, $config) =>
+            new PostgresConnection($pdo, $database, $prefix, $config)
+        );
+    }
 
     public function boot(): void
     {
